@@ -1,5 +1,6 @@
 import {
   computeAllowance,
+  MAX_BOOSTED_PER_WEEK,
   settlePick, settlePlayerMatchweek, validateSlip, buildStandings,
   toDecimal, toAmerican, type StoredPick, type SettledMatch,
 } from "./scoring.ts";
@@ -68,10 +69,31 @@ check("3 doubles is rejected", validateSlip(
   { tripleUpgradesUsedThisQuarter: 0, quadUsedThisSeason: false }
 )[0]?.code, "TOO_MANY_DOUBLES");
 
-check("a triple also eats a double slot", validateSlip(
+check("a triple does NOT eat a double slot", validateSlip(
   [{ multiplier: 3 }, { multiplier: 2 }, { multiplier: 2 }],
   { tripleUpgradesUsedThisQuarter: 0, quadUsedThisSeason: false }
+).length, 0);
+
+check("the maximum week: 2 doubles + 2 triples + 1 quad", validateSlip(
+  [{ multiplier: 2 }, { multiplier: 2 }, { multiplier: 3 }, { multiplier: 3 }, { multiplier: 4 }],
+  { tripleUpgradesUsedThisQuarter: 0, quadUsedThisSeason: false }
+).length, 0);
+
+check("a 6th boost is rejected", validateSlip(
+  [{ multiplier: 2 }, { multiplier: 2 }, { multiplier: 2 },
+   { multiplier: 3 }, { multiplier: 3 }, { multiplier: 4 }],
+  { tripleUpgradesUsedThisQuarter: 0, quadUsedThisSeason: false }
 )[0]?.code, "TOO_MANY_DOUBLES");
+
+check("pools are checked independently", validateSlip(
+  [{ multiplier: 3 }, { multiplier: 3 }, { multiplier: 4 }],
+  { tripleUpgradesUsedThisQuarter: 0, quadUsedThisSeason: false }
+).length, 0);
+
+check("doubles spent don't block a triple", validateSlip(
+  [{ multiplier: 2 }, { multiplier: 2 }, { multiplier: 3 }],
+  { tripleUpgradesUsedThisQuarter: 1, quadUsedThisSeason: false }
+).length, 0);
 
 check("3rd triple in a quarter is rejected", validateSlip(
   [{ multiplier: 3 }],
@@ -87,6 +109,8 @@ check("quad does not consume a triple", validateSlip(
   [{ multiplier: 4 }, { multiplier: 3 }],
   { tripleUpgradesUsedThisQuarter: 1, quadUsedThisSeason: false }
 ).length, 0);
+
+check("max boosted per week", MAX_BOOSTED_PER_WEEK, 5);
 
 console.log("\nQuarters");
 check("MW9 is Q1", quarterOf(9).q, 1);

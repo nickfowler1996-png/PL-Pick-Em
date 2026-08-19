@@ -14,14 +14,27 @@ export const BASE_STAKE = 100;
 export type Outcome = "HOME" | "DRAW" | "AWAY";
 export type Multiplier = 1 | 2 | 3 | 4;
 
+/**
+ * Three independent pools. A triple is not an upgraded double and does not
+ * consume one — each multiplier is drawn from its own allowance.
+ *
+ * So the biggest possible week is 2 doubles + 2 triples + 1 quad = five
+ * boosted matches, if you happen to have all of them in hand.
+ */
 export const MULTIPLIER_LIMITS = {
   /** Doubles reset every matchweek. Unused doubles do NOT roll over. */
   doublesPerMatchweek: 2,
-  /** Triple upgrades reset at the start of each quarter. */
+  /** Triples reset at the start of each quarter. */
   tripleUpgradesPerQuarter: 2,
   /** One quad for the whole season. */
   quadsPerSeason: 1,
 } as const;
+
+/** Most matches that can carry a multiplier in a single week. */
+export const MAX_BOOSTED_PER_WEEK =
+  MULTIPLIER_LIMITS.doublesPerMatchweek +
+  MULTIPLIER_LIMITS.tripleUpgradesPerQuarter +
+  MULTIPLIER_LIMITS.quadsPerSeason;
 
 /* ------------------------------------------------------------------ */
 /* Odds conversion                                                     */
@@ -224,8 +237,8 @@ export interface ValidationError {
 /**
  * Validate a slip's multiplier usage against what the player has left.
  *
- * A triple and a quad are both *upgrades of a double*, so each consumes one of
- * the two weekly double slots in addition to its own allowance.
+ * Each multiplier draws on its own pool and nothing else: spending a triple
+ * doesn't cost you a double, and the quad costs neither.
  *
  * Run this server-side on every save. The client's counters are a convenience,
  * not a source of truth.
@@ -241,15 +254,14 @@ export function validateSlip(
     return errors;
   }
 
-  // Anything above 1x occupies a double slot.
-  const doublesUsed = picks.filter((p) => p.multiplier >= 2).length;
+  const doublesUsed = picks.filter((p) => p.multiplier === 2).length;
   const triplesUsed = picks.filter((p) => p.multiplier === 3).length;
   const quadsUsed = picks.filter((p) => p.multiplier === 4).length;
 
   if (doublesUsed > MULTIPLIER_LIMITS.doublesPerMatchweek) {
     errors.push({
       code: "TOO_MANY_DOUBLES",
-      message: `You can boost ${MULTIPLIER_LIMITS.doublesPerMatchweek} matches a week. This slip boosts ${doublesUsed}.`,
+      message: `You have ${MULTIPLIER_LIMITS.doublesPerMatchweek} doubles a week. This slip uses ${doublesUsed}.`,
     });
   }
 

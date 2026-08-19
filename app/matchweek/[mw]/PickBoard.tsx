@@ -52,13 +52,23 @@ export default function PickBoard({
     return () => { clearInterval(t); clearInterval(l); };
   }, [loadOdds, matchweek.locksAt]);
 
+  // Three independent pools — a triple doesn't consume a double.
   const used = {
-    doubles: Object.values(picks).filter((p) => p.multiplier >= 2).length,
+    doubles: Object.values(picks).filter((p) => p.multiplier === 2).length,
     triples: Object.values(picks).filter((p) => p.multiplier === 3).length
              + allowance.tripleUpgradesUsedThisQuarter,
     quads: Object.values(picks).filter((p) => p.multiplier === 4).length
            + (allowance.quadUsedThisSeason ? 1 : 0),
   };
+
+  /** Could this match be set to `target`, given what's already spent? */
+  function available(target: Multiplier, current: Multiplier): boolean {
+    if (target === 1) return true;
+    const alreadyMine = current === target ? 1 : 0;
+    if (target === 2) return used.doubles - alreadyMine < limits.doublesPerMatchweek;
+    if (target === 3) return used.triples - alreadyMine < limits.tripleUpgradesPerQuarter;
+    return used.quads - alreadyMine < limits.quadsPerSeason;
+  }
 
   async function save(matchId: string, outcome: Outcome, multiplier: Multiplier) {
     setSaving(matchId);
@@ -79,15 +89,22 @@ export default function PickBoard({
   function cycle(m: Match) {
     const cur = picks[m.id]?.multiplier ?? 1;
     const order: Multiplier[] = [1, 2, 3, 4];
+
     for (let i = 1; i <= 4; i++) {
       const next = order[(order.indexOf(cur) + i) % 4];
-      const extraDouble = cur >= 2 ? 0 : 1;
-      if (next > 1 && used.doubles + extraDouble > limits.doublesPerMatchweek) continue;
-      if (next === 3 && used.triples + (cur === 3 ? 0 : 1) > limits.tripleUpgradesPerQuarter) continue;
-      if (next === 4 && used.quads + (cur === 4 ? 0 : 1) > limits.quadsPerSeason) continue;
+      if (next === cur) break;
+      if (!available(next, cur)) continue;
+      setError(null);
       save(m.id, picks[m.id].outcome, next);
       return;
     }
+
+    // Nothing else is affordable. Say so rather than ignoring the tap.
+    setError(
+      cur === 1
+        ? "No multipliers left — your doubles, triples and quad are all spent."
+        : `Nothing left to switch to. Tap again once you free up a slot, or leave it at ${LABEL[cur]}.`
+    );
   }
 
   const made = Object.keys(picks).length;

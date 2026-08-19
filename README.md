@@ -14,8 +14,9 @@ prices, tracked by official Premier League matchweek across four quarters.
 | Odds | Live at tap time; the price is stamped onto the pick |
 | Picks lock | First kickoff of the matchweek, same instant for everyone |
 | Doubles | 2 per matchweek — **unused doubles expire, no rollover** |
-| Triples | 2 per quarter; a triple also consumes a double slot |
-| Quad | 1 per season; consumes a double slot, not a triple — so a quad and a triple can share one week |
+| Triples | 2 per quarter |
+| Quad | 1 per season |
+| Multiplier pools | Independent — a triple does not consume a double. A maximum week is 2 doubles + 2 triples + 1 quad = **5 boosted matches** |
 | Postponed fixture | Voided: scores nothing, penalises nothing, and refunds any triple or quad staked on it |
 | Settlement | After the last match of the matchweek finishes — nothing hits the leaderboard mid-round |
 | Quarters | Q1 MW1–9 · Q2 MW10–18 · Q3 MW19–28 · Q4 MW29–38 |
