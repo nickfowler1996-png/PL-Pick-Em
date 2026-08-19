@@ -29,6 +29,7 @@ export async function POST(req: Request) {
   let matchweeksWritten = 0;
   let matchesWritten = 0;
   const compressed: number[] = [];
+  const errors: string[] = [];
 
   for (let i = 0; i < weeks.length; i++) {
     const wk = weeks[i];
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     const window = computeSendWindow(wk.firstKickoff, prev);
     if (window.mode === "compressed") compressed.push(wk.matchweek);
 
-    const { data: mwRow } = await db
+    const { data: mwRow, error: mwError } = await db
       .from("matchweeks")
       .upsert(
         {
@@ -54,11 +55,19 @@ export async function POST(req: Request) {
       .select("id")
       .single();
 
-    if (!mwRow) continue;
+    // Surface the reason rather than silently writing nothing.
+    if (mwError) {
+      if (errors.length < 3) errors.push(`matchweek ${wk.matchweek}: ${mwError.message}`);
+      continue;
+    }
+    if (!mwRow) {
+      if (errors.length < 3) errors.push(`matchweek ${wk.matchweek}: upsert returned no row`);
+      continue;
+    }
     matchweeksWritten++;
 
     for (const f of wk.fixtures) {
-      await db.from("matches").upsert(
+      const { error: matchError } = await db.from("matches").upsert(
         {
           matchweek_id: mwRow.id,
           fd_match_id: f.fdMatchId,
@@ -72,14 +81,23 @@ export async function POST(req: Request) {
         },
         { onConflict: "fd_match_id" }
       );
+      if (matchError) {
+        if (errors.length < 3) errors.push(`match ${f.fdMatchId}: ${matchError.message}`);
+        continue;
+      }
       matchesWritten++;
     }
   }
 
-  return NextResponse.json({
+  const body = {
     season: SEASON_LABEL,
+    fixturesFetched: fixtures.length,
     matchweeks: matchweeksWritten,
     matches: matchesWritten,
     compressedRounds: compressed,
-  });
+    errors,
+  };
+
+  // Fail loudly so the Actions run goes red instead of reporting a false pass.
+  return NextResponse.json(body, { status: errors.length > 0 ? 500 : 200 });
 }
