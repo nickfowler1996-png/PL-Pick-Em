@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase-server";
 import { quarterOf } from "@/lib/matchweek";
-import { computeAllowance, MULTIPLIER_LIMITS, type Multiplier } from "@/lib/scoring";
+import { computeAllowance, MULTIPLIER_LIMITS, type Multiplier, type Outcome } from "@/lib/scoring";
 import PickBoard from "./PickBoard";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +69,9 @@ export default async function MatchweekPage({ params }: { params: { mw: string }
       }))}
       initialPicks={Object.fromEntries(
         (myPicks ?? []).map((p) => [p.match_id, {
-          outcome: p.outcome, multiplier: p.multiplier as Multiplier, priceTaken: p.price_taken,
+          outcome: p.outcome as Outcome,
+          multiplier: p.multiplier as Multiplier,
+          priceTaken: p.price_taken,
         }])
       )}
       allowance={allowance}

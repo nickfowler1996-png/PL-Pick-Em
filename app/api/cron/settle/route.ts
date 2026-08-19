@@ -5,6 +5,7 @@ import { isQuarterEnd } from "@/lib/matchweek";
 import { sendResultsRecap } from "@/lib/email";
 import { requireCron } from "@/lib/auth";
 import type { StoredPick } from "@/lib/scoring";
+import type { MatchRow } from "@/lib/settle";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
 
   const { data: matchweeks, error } = await db
     .from("matchweeks")
-    .select("id, mw_number, season, quarter, last_kickoff, settled_at")
+    .select("id, mw_number, season, quarter, last_kickoff, locks_at, settled_at")
     .is("settled_at", null)
     .lt("first_kickoff", new Date().toISOString())
     .order("mw_number");
@@ -43,13 +44,16 @@ export async function POST(req: Request) {
       .select("id, status, result, kickoff")
       .eq("matchweek_id", mw.id);
 
+    // Supabase infers enum columns as plain strings, so narrow them here.
+    const rows: MatchRow[] = (matches ?? []).map((m) => ({
+      matchId: m.id,
+      status: m.status as MatchRow["status"],
+      result: m.result as MatchRow["result"],
+      kickoff: new Date(m.kickoff),
+    }));
+
     const decision = evaluateMatchweek(
-      (matches ?? []).map((m) => ({
-        matchId: m.id,
-        status: m.status,
-        result: m.result,
-        kickoff: new Date(m.kickoff),
-      })),
+      rows,
       {
         lastKickoff: new Date(mw.last_kickoff),
         alreadySettled: Boolean(mw.settled_at),
@@ -78,8 +82,8 @@ export async function POST(req: Request) {
       if (!byPlayer.has(p.player_id)) byPlayer.set(p.player_id, []);
       byPlayer.get(p.player_id)!.push({
         matchId: p.match_id,
-        outcome: p.outcome,
-        multiplier: p.multiplier,
+        outcome: p.outcome as StoredPick["outcome"],
+        multiplier: p.multiplier as StoredPick["multiplier"],
         priceTaken: p.price_taken,
       });
     }

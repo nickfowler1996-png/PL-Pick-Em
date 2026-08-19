@@ -26,7 +26,7 @@ export interface MatchweekRow {
   id: string;
   mw_number: number;
   quarter?: number;
-  send_mode?: "standard" | "compressed";
+  send_mode?: string;
   first_kickoff?: string;
   locks_at: string;
 }

@@ -32,7 +32,7 @@ export async function GET(req: Request) {
     .order("fetched_at", { ascending: false })
     .limit(ids.length * 3 * 4);   // a few generations deep, then collapsed
 
-  const priced = latestPrices(rows ?? []);
+  const priced = latestPrices((rows ?? []) as Parameters<typeof latestPrices>[0]);
 
   return NextResponse.json({
     prices: Object.fromEntries([...priced].map(([id, p]) => [id, p.prices])),

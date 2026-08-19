@@ -55,7 +55,9 @@ export async function POST(req: Request) {
     .order("fetched_at", { ascending: false })
     .limit(12);
 
-  const priced = latestPrices(snapshotRows ?? []).get(body.matchId);
+  const priced = latestPrices(
+    (snapshotRows ?? []) as Parameters<typeof latestPrices>[0]
+  ).get(body.matchId);
 
   if (!priced) {
     return NextResponse.json(
