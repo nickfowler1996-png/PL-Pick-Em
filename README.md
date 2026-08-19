@@ -157,11 +157,20 @@ password:
 | Send | When | Says |
 |---|---|---|
 | Invite | `send_at` passes | Board is open; flags a short week explicitly |
-| Reminder | 6h before lock | How many blanks you have and what they'll cost |
+| Reminder | 24h before lock | How many blanks you have and what they'll cost |
 | Recap | Matchweek settles | Winner, your line, and the quarter/season table |
 
 If `generateLink` fails the email still goes out with a plain URL — a login
 prompt beats a broken link.
+
+Sends are logged per player in `email_sends`, not per matchweek, so someone who
+joins midway through a week still gets the invite on the next pass rather than
+missing the round. Reminders go only to players with an incomplete slip.
+
+The 24-hour reminder lead suits a pool spread across time zones — a 6-hour
+warning on a 15:00 UK kick-off arrives at 4am in the eastern US. On a
+compressed midweek round the whole window is 24 hours, so the reminder moves to
+the midpoint instead.
 
 ## Still to build
 

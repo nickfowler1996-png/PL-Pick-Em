@@ -6,11 +6,11 @@ import { supabaseAdmin } from "@/lib/supabase-server";
 export const dynamic = "force-dynamic";
 
 /**
- * Send the pick email for any matchweek whose send_at has passed and which
- * hasn't gone out yet. Runs every 6 hours.
+ * Send the pick email for any open matchweek, to anyone who hasn't had it.
  *
- * send_at is computed in sync-fixtures: 72h before first kickoff normally, 24h
- * when the round follows too closely on the last one.
+ * Runs every 6 hours. Tracked per player rather than per matchweek, so
+ * somebody who signs up midway through the week still gets the invite on the
+ * next pass instead of silently missing the round.
  */
 export async function POST(req: Request) {
   const denied = requireCron(req);
@@ -19,26 +19,43 @@ export async function POST(req: Request) {
   const db = supabaseAdmin();
   const now = new Date().toISOString();
 
-  const { data: due } = await db
+  const { data: due, error: mwError } = await db
     .from("matchweeks")
     .select("id, mw_number, quarter, send_mode, first_kickoff, locks_at")
-    .is("invite_sent_at", null)
     .lte("send_at", now)
-    .gt("locks_at", now)          // never invite a round that already locked
+    .gt("locks_at", now)
     .order("mw_number");
+
+  if (mwError) return NextResponse.json({ error: mwError.message }, { status: 500 });
 
   const { data: players } = await db
     .from("players")
     .select("id, email, display_name")
     .eq("active", true);
 
-  const sent: number[] = [];
+  const sent: unknown[] = [];
 
   for (const mw of due ?? []) {
-    await sendMatchweekInvite({ db, matchweek: mw, players: players ?? [] });
+    const { data: already } = await db
+      .from("email_sends")
+      .select("player_id")
+      .eq("matchweek_id", mw.id)
+      .eq("kind", "invite");
+
+    const had = new Set((already ?? []).map((r) => r.player_id));
+    const toSend = (players ?? []).filter((p) => !had.has(p.id));
+
+    if (toSend.length === 0) continue;
+
+    await sendMatchweekInvite({ db, matchweek: mw, players: toSend });
+
+    await db.from("email_sends").upsert(
+      toSend.map((p) => ({ player_id: p.id, matchweek_id: mw.id, kind: "invite" }))
+    );
+
     await db.from("matchweeks").update({ invite_sent_at: now }).eq("id", mw.id);
-    sent.push(mw.mw_number);
+    sent.push({ matchweek: mw.mw_number, recipients: toSend.length });
   }
 
-  return NextResponse.json({ sent, recipients: players?.length ?? 0 });
+  return NextResponse.json({ sent, activePlayers: players?.length ?? 0 });
 }

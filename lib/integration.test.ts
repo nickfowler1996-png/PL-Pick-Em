@@ -1,6 +1,7 @@
 import { mapFixture, deriveResult, normaliseStatus } from "./football-data.ts";
 import { mapEvent, teamKey, matchKey, isBetter, classifyOutcome, sameTeam, findEventFor } from "./odds-api.ts";
 import { evaluateMatchweek, settleAllPlayers, matchweekWinners, VOID_GRACE_HOURS } from "./settle.ts";
+import { computeReminderAt, REMINDER_LEAD_HOURS } from "./matchweek.ts";
 import type { StoredPick } from "./scoring.ts";
 
 let pass = 0, fail = 0;
@@ -66,6 +67,25 @@ const incomplete = mapEvent({
   bookmakers: [{ key: "b1", markets: [{ key: "h2h", outcomes: [{ name: "Arsenal", price: -250 }] }] }],
 });
 check("half-priced market is dropped", incomplete, null);
+
+console.log("\nreminder timing");
+check("lead is 24h", REMINDER_LEAD_HOURS, 24);
+
+const stdLock = new Date("2026-08-21T14:00:00Z");
+const stdSend = new Date("2026-08-18T14:00:00Z");   // 72h window
+check("standard round nudges 24h out",
+  computeReminderAt(stdLock, stdSend).toISOString(), "2026-08-20T14:00:00.000Z");
+
+const midLock = new Date("2026-12-16T19:30:00Z");
+const midSend = new Date("2026-12-15T19:30:00Z");   // 24h window
+check("compressed round nudges at the midpoint",
+  computeReminderAt(midLock, midSend).toISOString(), "2026-12-16T07:30:00.000Z");
+check("compressed reminder lands after the invite",
+  computeReminderAt(midLock, midSend) > midSend, true);
+check("compressed reminder lands before lock",
+  computeReminderAt(midLock, midSend) < midLock, true);
+check("without a send time it falls back to 24h",
+  computeReminderAt(stdLock).toISOString(), "2026-08-20T14:00:00.000Z");
 
 console.log("\nclub name matching");
 check("dropped suffix: Nottingham", sameTeam("Nottingham", "Nottingham Forest"), true);

@@ -79,11 +79,30 @@ export function computeSendWindow(
   return { sendAt: standard, mode: "standard", locksAt: firstKickoff };
 }
 
-/** Nudge anyone with an incomplete slip this long before lock. */
-export const REMINDER_LEAD_HOURS = 6;
+/**
+ * Nudge anyone with an incomplete slip this long before lock.
+ *
+ * 24 hours rather than something tighter because the pool spans time zones: a
+ * 15:00 UK kick-off means a 6-hour warning lands at 4am in the eastern US, and
+ * the reminder is the main thing standing between someone and a -$100-a-match
+ * no-show.
+ */
+export const REMINDER_LEAD_HOURS = 24;
 
-export function computeReminderAt(locksAt: Date): Date {
-  return new Date(locksAt.getTime() - REMINDER_LEAD_HOURS * HOURS);
+/**
+ * When to nudge.
+ *
+ * Normally 24 hours before lock. On a compressed midweek round the whole pick
+ * window is only 24 hours, so a 24-hour lead would fire the reminder at the
+ * same moment as the invite. There we fall back to the midpoint of the window,
+ * which keeps the two messages usefully apart.
+ */
+export function computeReminderAt(locksAt: Date, sendAt?: Date): Date {
+  if (!sendAt) return new Date(locksAt.getTime() - REMINDER_LEAD_HOURS * HOURS);
+
+  const windowHours = (locksAt.getTime() - sendAt.getTime()) / HOURS;
+  const leadHours = Math.min(REMINDER_LEAD_HOURS, windowHours / 2);
+  return new Date(locksAt.getTime() - leadHours * HOURS);
 }
 
 /**
