@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchEplOdds, matchKey, lastQuota } from "@/lib/odds-api";
+import { fetchEplOdds, findEventFor, lastQuota } from "@/lib/odds-api";
 import { shouldSnapshot } from "@/lib/odds-schedule";
 import { requireCron } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
@@ -59,13 +59,12 @@ export async function POST(req: Request) {
   }
 
   const odds = await fetchEplOdds(true);
-  const byKey = new Map(odds.map((o) => [matchKey(o.homeTeam, o.awayTeam), o]));
 
   const rows: { match_id: string; outcome: string; american: number; fetched_at: string }[] = [];
   const unmatched: string[] = [];
 
   for (const m of matches) {
-    const event = byKey.get(matchKey(m.home_team, m.away_team));
+    const event = findEventFor(m.home_team, m.away_team, odds);
     if (!event) { unmatched.push(`${m.home_team} v ${m.away_team}`); continue; }
     for (const outcome of ["HOME", "DRAW", "AWAY"] as const) {
       rows.push({
@@ -85,7 +84,9 @@ export async function POST(req: Request) {
     hoursToLock: Math.round(decision.hoursLeft * 10) / 10,
     nextInMinutes: decision.intervalMinutes,
     quotaRemaining: lastQuota()?.remaining ?? null,
-    // A club here means the two feeds disagree on its name. Fix teamKey().
+    // A club here means the two feeds still disagree on its name.
     unmatched,
+    // What the odds feed called things, so a mismatch is diagnosable.
+    feedTeams: unmatched.length ? odds.map((o) => `${o.homeTeam} v ${o.awayTeam}`) : [],
   });
 }

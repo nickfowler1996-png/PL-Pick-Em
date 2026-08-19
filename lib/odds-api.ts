@@ -92,30 +92,59 @@ export function classifyOutcome(
 /* ------------------------------------------------------------------ */
 
 /**
- * The two feeds don't agree on club names. football-data says "Nott'm Forest";
- * the odds feed says "Nottingham Forest". Normalise both sides to a key.
+ * The two feeds don't agree on club names, and the disagreement isn't a fixed
+ * list you can maintain by hand — it changes every August with promotion.
+ * football-data says "Nottingham" where the odds feed says "Nottingham Forest";
+ * "Brighton Hove" against "Brighton and Hove Albion".
+ *
+ * So rather than enumerate clubs, normalise both sides and accept a match when
+ * one name is a prefix of the other. That handles dropped suffixes without
+ * ever confusing two genuinely different clubs — "Manchester City" and
+ * "Manchester United" are neither equal nor a prefix of one another.
  */
 export function teamKey(name: string): string {
   return name
     .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9 ]/g, "")
-    .replace(/\b(fc|afc|association football club)\b/g, "")
+    .replace(/&/g, " and ")
+    // Strip apostrophes before punctuation becomes spaces, or "Nott'm"
+    // turns into "nott m" and the abbreviation rules stop matching.
+    .replace(/['\u2018\u2019\u0060]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\b(fc|afc|cf|association football club)\b/g, " ")
     .replace(/\bnottm\b/g, "nottingham")
     .replace(/\bman\b/g, "manchester")
-    .replace(/\bwolverhampton wanderers\b/g, "wolves")
-    .replace(/\bbrighton and hove albion\b/g, "brighton")
-    .replace(/\btottenham hotspur\b/g, "tottenham")
-    .replace(/\bwest ham united\b/g, "west ham")
-    .replace(/\bnewcastle united\b/g, "newcastle")
-    .replace(/\bleeds united\b/g, "leeds")
-    .replace(/\bafc bournemouth\b/g, "bournemouth")
+    .replace(/\bwolves\b/g, "wolverhampton")
+    .replace(/\bspurs\b/g, "tottenham")
+    .replace(/\band\b/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
+/** True when two club names refer to the same club. */
+export function sameTeam(a: string, b: string): boolean {
+  const x = teamKey(a);
+  const y = teamKey(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  // "nottingham" vs "nottingham forest", "brighton hove" vs
+  // "brighton hove albion". Guard the boundary so "wes" can't match "west ham".
+  return x.startsWith(y + " ") || y.startsWith(x + " ");
+}
+
 export function matchKey(home: string, away: string): string {
   return `${teamKey(home)}|${teamKey(away)}`;
+}
+
+/**
+ * Find the priced event for a fixture. Both clubs must agree, so a shared
+ * city name can't pair the wrong two sides.
+ */
+export function findEventFor(
+  home: string,
+  away: string,
+  events: MatchOdds[]
+): MatchOdds | undefined {
+  return events.find((e) => sameTeam(e.homeTeam, home) && sameTeam(e.awayTeam, away));
 }
 
 /* ------------------------------------------------------------------ */

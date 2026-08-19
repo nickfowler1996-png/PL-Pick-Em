@@ -67,7 +67,8 @@ the leaderboard and nothing else. Auto-expose is safe against that.
 ## 3. Create the database
 
 In Supabase, open **SQL Editor → New query**. Paste the entire contents of
-`supabase/schema.sql` and run it. That builds every table, the lock trigger, the
+`supabase/schema.sql` and run it, then do the same with
+`supabase/02-auth-link.sql`. That builds every table, the lock trigger, the
 standings view, the security policies, and live updates.
 
 Confirm the lockdown worked — this should return six rows, all `t`:
@@ -154,19 +155,27 @@ a redirect URL. Magic links won't work until you do.
 
 Two ways. Pick whichever you prefer.
 
-**From the Supabase dashboard** — SQL Editor, edit the addresses, run it:
+**Just send them the link.** Run `supabase/02-auth-link.sql` once in the SQL
+Editor, and from then on anyone who signs in gets a player row created
+automatically, sharing the id of their sign-in account. That id match is
+essential — picks are stored against the sign-in account, so a mismatched
+players row would make every pick settle as a no-show.
+
+Send your friends `https://your-app.vercel.app`, they enter their email, and
+they're in.
+
+Their display name is guessed from the address (`dev.patel@email.com` becomes
+"Dev Patel"). To tidy names up:
 
 ```sql
-insert into players (email, display_name) values
-  ('dev@email.com',    'Dev'),
-  ('priya@email.com',  'Priya'),
-  ('marcus@email.com', 'Marcus')
-on conflict (email) do update
-  set display_name = excluded.display_name, active = true;
+update players set display_name = 'Dev' where email = 'dev@email.com';
 ```
 
-**From your machine** — copy `players.example.txt`, put one person per line,
-then:
+Anyone with the link can sign themselves in, so don't post it publicly. To
+remove someone, set `active = false` — their history stays on the board.
+
+**Pre-creating accounts** — if you'd rather add people before they sign in,
+copy `players.example.txt`, put one person per line, then:
 
     npm install
     npm run add-players -- --file players.txt

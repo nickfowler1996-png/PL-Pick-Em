@@ -1,5 +1,5 @@
 import { mapFixture, deriveResult, normaliseStatus } from "./football-data.ts";
-import { mapEvent, teamKey, matchKey, isBetter, classifyOutcome } from "./odds-api.ts";
+import { mapEvent, teamKey, matchKey, isBetter, classifyOutcome, sameTeam, findEventFor } from "./odds-api.ts";
 import { evaluateMatchweek, settleAllPlayers, matchweekWinners, VOID_GRACE_HOURS } from "./settle.ts";
 import type { StoredPick } from "./scoring.ts";
 
@@ -67,15 +67,31 @@ const incomplete = mapEvent({
 });
 check("half-priced market is dropped", incomplete, null);
 
-console.log("\nteam name reconciliation");
-check("Nott'm Forest matches Nottingham Forest", teamKey("Nott'm Forest"), teamKey("Nottingham Forest"));
-check("Man City matches Manchester City", teamKey("Man City"), teamKey("Manchester City"));
-check("Wolves matches Wolverhampton", teamKey("Wolves"), teamKey("Wolverhampton Wanderers"));
-check("Brighton long form", teamKey("Brighton"), teamKey("Brighton and Hove Albion"));
-check("Spurs long form", teamKey("Tottenham"), teamKey("Tottenham Hotspur"));
-check("AFC Bournemouth", teamKey("Bournemouth"), teamKey("AFC Bournemouth"));
-check("distinct clubs stay distinct", teamKey("Manchester City") === teamKey("Manchester United"), false);
-check("fixture key is directional", matchKey("Arsenal", "Chelsea") === matchKey("Chelsea", "Arsenal"), false);
+console.log("\nclub name matching");
+check("dropped suffix: Nottingham", sameTeam("Nottingham", "Nottingham Forest"), true);
+check("dropped suffix: Brighton Hove", sameTeam("Brighton Hove", "Brighton and Hove Albion"), true);
+check("Man City", sameTeam("Man City", "Manchester City"), true);
+check("Nott'm Forest", sameTeam("Nott'm Forest", "Nottingham Forest"), true);
+check("Wolves", sameTeam("Wolves", "Wolverhampton Wanderers"), true);
+check("Spurs", sameTeam("Spurs", "Tottenham Hotspur"), true);
+check("AFC Bournemouth", sameTeam("Bournemouth", "AFC Bournemouth"), true);
+check("Newcastle", sameTeam("Newcastle", "Newcastle United"), true);
+check("promoted club, exact", sameTeam("Coventry City", "Coventry City"), true);
+check("City is not United", sameTeam("Manchester City", "Manchester United"), false);
+check("Forest is not County", sameTeam("Nottingham Forest", "Nottingham County"), false);
+check("West Ham is not West Brom", sameTeam("West Ham", "West Bromwich Albion"), false);
+check("Sheffield sides differ", sameTeam("Sheffield United", "Sheffield Wednesday"), false);
+
+const events = [
+  { oddsEventId: "e1", homeTeam: "Nottingham Forest", awayTeam: "Leeds United",
+    commenceTime: new Date(), prices: { HOME: -110, DRAW: 250, AWAY: 300 } },
+  { oddsEventId: "e2", homeTeam: "Brighton and Hove Albion", awayTeam: "Aston Villa",
+    commenceTime: new Date(), prices: { HOME: 120, DRAW: 240, AWAY: 220 } },
+];
+check("pairs Nottingham v Leeds United", findEventFor("Nottingham", "Leeds United", events)?.oddsEventId, "e1");
+check("pairs Brighton Hove v Aston Villa", findEventFor("Brighton Hove", "Aston Villa", events)?.oddsEventId, "e2");
+check("won't pair a reversed fixture", findEventFor("Leeds United", "Nottingham", events), undefined);
+check("won't pair an absent fixture", findEventFor("Arsenal", "Chelsea", events), undefined);
 
 console.log("\nsettlement readiness");
 const lastKO = new Date("2026-09-14T19:00:00Z");

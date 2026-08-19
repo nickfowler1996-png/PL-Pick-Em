@@ -31,6 +31,7 @@ export default function PickBoard({
   const [picks, setPicks] = useState(initialPicks);
   const [live, setLive] = useState<Record<string, Record<Outcome, number>>>({});
   const [pricedAt, setPricedAt] = useState<string | null>(null);
+  const [oddsLoaded, setOddsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
   const [locked, setLocked] = useState(() => new Date() >= new Date(matchweek.locksAt));
@@ -41,6 +42,7 @@ export default function PickBoard({
     const data = await res.json();
     setLive(data.prices);
     setPricedAt(data.fetchedAt);
+    setOddsLoaded(true);
   }, [matchweek.number]);
 
   useEffect(() => {
@@ -110,7 +112,9 @@ export default function PickBoard({
           <span className="dot" />
           {pricedAt
             ? `Prices as of ${describeAge(ageMinutes(pricedAt))} · they refresh more often as kick-off nears`
-            : "Loading prices…"}
+            : oddsLoaded
+              ? "No prices stored yet · run the snapshot-odds job, then refresh"
+              : "Loading prices…"}
         </div>
       )}
 
