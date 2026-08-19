@@ -195,10 +195,17 @@ export function settlePlayerMatchweek(
 /* Multiplier validation                                               */
 /* ------------------------------------------------------------------ */
 
+/**
+ * What a player has already spent in EARLIER matchweeks.
+ *
+ * Must exclude the matchweek being validated. The slip under validation is
+ * passed to validateSlip separately, so counting the current week here too
+ * double-counts it — one quad reads as two and every later edit is rejected.
+ */
 export interface Allowance {
-  /** Triples already used earlier in the current quarter. */
+  /** Triples used earlier in the current quarter, excluding this matchweek. */
   tripleUpgradesUsedThisQuarter: number;
-  /** Whether the season quad has been spent. */
+  /** Whether the season quad was spent in an earlier matchweek. */
   quadUsedThisSeason: boolean;
 }
 

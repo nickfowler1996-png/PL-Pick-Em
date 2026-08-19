@@ -226,3 +226,42 @@ check("refunded triple can be replayed", validateSlip(
 
 console.log(`\nFINAL: ${pass} passed, ${fail} failed\n`);
 if (fail > 0) process.exit(1);
+
+/* ---- appended: allowance must not double-count the current week ---- */
+console.log("\nAllowance excludes the current matchweek");
+
+// A quad played THIS week appears in the slip. If it also appeared in the
+// allowance, this would wrongly report QUAD_ALREADY_USED.
+check("quad in this week's slip is not also 'already used'", validateSlip(
+  [{ multiplier: 4 }, { multiplier: 2 }],
+  { tripleUpgradesUsedThisQuarter: 0, quadUsedThisSeason: false }
+).length, 0);
+
+check("adding a double alongside this week's quad still works", validateSlip(
+  [{ multiplier: 4 }, { multiplier: 2 }, { multiplier: 2 }],
+  { tripleUpgradesUsedThisQuarter: 0, quadUsedThisSeason: false }
+).length, 0);
+
+check("adding a triple alongside this week's quad still works", validateSlip(
+  [{ multiplier: 4 }, { multiplier: 3 }],
+  { tripleUpgradesUsedThisQuarter: 0, quadUsedThisSeason: false }
+).length, 0);
+
+// A quad played in an EARLIER week does block a new one.
+check("quad spent in an earlier week blocks a second", validateSlip(
+  [{ multiplier: 4 }],
+  { tripleUpgradesUsedThisQuarter: 0, quadUsedThisSeason: true }
+)[0]?.code, "QUAD_ALREADY_USED");
+
+check("earlier quad doesn't block this week's doubles", validateSlip(
+  [{ multiplier: 2 }, { multiplier: 2 }],
+  { tripleUpgradesUsedThisQuarter: 0, quadUsedThisSeason: true }
+).length, 0);
+
+check("earlier quad doesn't block this week's triples", validateSlip(
+  [{ multiplier: 3 }, { multiplier: 3 }],
+  { tripleUpgradesUsedThisQuarter: 0, quadUsedThisSeason: true }
+).length, 0);
+
+console.log(`\nFINAL: ${pass} passed, ${fail} failed\n`);
+if (fail > 0) process.exit(1);

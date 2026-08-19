@@ -68,32 +68,39 @@ export async function POST(req: Request) {
   const priceTaken = priced.prices[body.outcome];
 
   // Recount allowances from what this player has actually spent.
-  const { data: seasonPicks } = await admin
+  //
+  // One query, then three views of it. The split matters: validateSlip is
+  // given THIS week's picks explicitly, so the allowance handed alongside it
+  // must cover only *earlier* weeks. Counting a pick in both places makes a
+  // single quad look like two and rejects every later change.
+  const { data: allPicks } = await admin
     .from("picks")
-    .select("multiplier, match_id, matches!inner(voided, matchweeks!inner(season, quarter))")
+    .select(
+      "multiplier, match_id, matches!inner(voided, matchweek_id, matchweeks!inner(season, quarter))"
+    )
     .eq("player_id", user.id)
     .neq("match_id", body.matchId);
 
-  const season = (seasonPicks ?? []).filter((p: any) => p.matches.matchweeks.season === mw.season);
-  const quarter = season.filter((p: any) => p.matches.matchweeks.quarter === mw.quarter);
+  const rows = (allPicks ?? []) as any[];
 
-  const shape = (rows: any[]) =>
-    rows.map((p) => ({ multiplier: p.multiplier as Multiplier, voided: p.matches.voided }));
+  const thisWeek = rows.filter((p) => p.matches.matchweek_id === mw.id);
+  const earlier = rows.filter((p) => p.matches.matchweek_id !== mw.id);
 
-  const allowance = computeAllowance(shape(quarter), shape(season));
+  const shape = (list: any[]) =>
+    list.map((p) => ({ multiplier: p.multiplier as Multiplier, voided: p.matches.voided }));
 
-  // This week's other picks count against the two-double limit.
-  const { data: weekPicks } = await admin
-    .from("picks")
-    .select("multiplier, match_id, matches!inner(matchweek_id)")
-    .eq("player_id", user.id)
-    .neq("match_id", body.matchId);
+  const earlierThisSeason = earlier.filter((p) => p.matches.matchweeks.season === mw.season);
+  const earlierThisQuarter = earlierThisSeason.filter(
+    (p) => p.matches.matchweeks.quarter === mw.quarter
+  );
 
-  const thisWeek = (weekPicks ?? []).filter((p: any) => p.matches.matchweek_id === mw.id);
+  const allowance = computeAllowance(shape(earlierThisQuarter), shape(earlierThisSeason));
 
   const errors = validateSlip(
-    [...thisWeek.map((p: any) => ({ multiplier: p.multiplier as Multiplier })),
-     { multiplier: body.multiplier }],
+    [
+      ...thisWeek.map((p) => ({ multiplier: p.multiplier as Multiplier })),
+      { multiplier: body.multiplier },
+    ],
     allowance
   );
 
