@@ -1,0 +1,40 @@
+name: Pick 'em jobs
+
+# Vercel's hobby tier limits cron frequency, so the schedule lives here instead.
+on:
+  schedule:
+    - cron: "17 6 * * *"      # sync-fixtures  — daily
+    - cron: "0 */6 * * *"     # send-invites   — every 6 hours
+    - cron: "23 * * * *"      # send-reminders — hourly
+    - cron: "47 * * * *"      # settle         — hourly
+    - cron: "*/15 * * * *"    # snapshot-odds  — every 15 min (only spends a
+                              #   credit when the cadence says it's due)
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Job to run manually
+        required: true
+        type: choice
+        options: [sync-fixtures, send-invites, send-reminders, settle, snapshot-odds]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pick job for this schedule
+        id: pick
+        run: |
+          case "${{ github.event.schedule }}" in
+            "17 6 * * *")   echo "job=sync-fixtures"  >> $GITHUB_OUTPUT ;;
+            "0 */6 * * *")  echo "job=send-invites"   >> $GITHUB_OUTPUT ;;
+            "23 * * * *")   echo "job=send-reminders" >> $GITHUB_OUTPUT ;;
+            "47 * * * *")   echo "job=settle"         >> $GITHUB_OUTPUT ;;
+            "*/15 * * * *") echo "job=snapshot-odds"  >> $GITHUB_OUTPUT ;;
+            *)              echo "job=${{ inputs.job }}" >> $GITHUB_OUTPUT ;;
+          esac
+
+      - name: Call the route
+        run: |
+          curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/${{ steps.pick.outputs.job }}"
