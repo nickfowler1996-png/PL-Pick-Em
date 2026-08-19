@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { fetchSeasonFixtures } from "@/lib/football-data";
 import { groupIntoMatchweeks, computeSendWindow, quarterOf } from "@/lib/matchweek";
 import { requireCron } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   const denied = requireCron(req);
   if (denied) return denied;
 
-  const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const db = supabaseAdmin();
 
   const fixtures = await fetchSeasonFixtures(SEASON_START_YEAR);
   const weeks = groupIntoMatchweeks(fixtures);

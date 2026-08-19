@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { fetchEplOdds, matchKey, lastQuota } from "@/lib/odds-api";
 import { shouldSnapshot } from "@/lib/odds-schedule";
 import { requireCron } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   const denied = requireCron(req);
   if (denied) return denied;
 
-  const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const db = supabaseAdmin();
   const now = new Date();
 
   const { data: mw } = await db

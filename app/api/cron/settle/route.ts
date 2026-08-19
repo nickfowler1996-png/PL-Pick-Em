@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { evaluateMatchweek, settleAllPlayers, matchweekWinners } from "@/lib/settle";
 import { isQuarterEnd } from "@/lib/matchweek";
 import { sendResultsRecap } from "@/lib/email";
 import { requireCron } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase-server";
 import type { StoredPick } from "@/lib/scoring";
 import type { MatchRow } from "@/lib/settle";
 
@@ -21,10 +21,7 @@ export async function POST(req: Request) {
   const denied = requireCron(req);
   if (denied) return denied;
 
-  const db = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const db = supabaseAdmin();
 
   const { data: matchweeks, error } = await db
     .from("matchweeks")
