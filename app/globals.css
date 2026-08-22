@@ -127,3 +127,68 @@ button:focus-visible, a:focus-visible { outline:2px solid var(--gold); outline-o
   .lb th:nth-child(5), .lb td:nth-child(5) { display:none; }
 }
 @media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
+
+/* ---- Everyone's picks grid ---------------------------------------- */
+
+/* Matchweek switcher */
+.mwpick { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:14px; }
+.mwbtn { background:var(--card); border:1px solid var(--rule); color:var(--dim);
+         font-family:'IBM Plex Mono',monospace; font-size:11px; padding:5px 9px;
+         border-radius:2px; cursor:pointer; min-width:30px; }
+.mwbtn:hover { color:var(--chalk); border-color:var(--dim); }
+.mwbtn[data-on="true"] { border-color:var(--gold); color:var(--gold); }
+
+/* Horizontal scroll with the fixture column pinned, so a 15-player pool
+   still reads on a phone. */
+.gridscroll { overflow-x:auto; border:1px solid var(--rule); border-radius:2px;
+              -webkit-overflow-scrolling:touch; }
+.grid { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; }
+
+.grid th, .grid td { border-bottom:1px solid var(--rule); border-right:1px solid var(--rule);
+                     padding:7px 9px; text-align:center; vertical-align:middle; }
+.grid thead th { position:sticky; top:0; z-index:2; background:var(--card-hi);
+                 font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:400;
+                 letter-spacing:.1em; text-transform:uppercase; color:var(--dim);
+                 white-space:nowrap; }
+.grid thead th[data-me="true"] { color:var(--gold); }
+
+/* Pinned first column */
+.grid .stick { position:sticky; left:0; z-index:3; background:var(--card);
+               text-align:left; min-width:150px; max-width:190px; }
+.grid thead .stick { z-index:4; background:var(--card-hi); }
+.grid tfoot .stick { z-index:4; }
+
+.fx { font-family:'Oswald',sans-serif; font-size:13px; color:var(--chalk); line-height:1.2; }
+.fx i { color:var(--dim); font-style:normal; font-size:10px; padding:0 3px; }
+.fxsub { font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--dim); margin-top:2px; }
+
+.pk { font-family:'IBM Plex Sans',sans-serif; font-size:12px; white-space:nowrap; }
+.mx { font-family:'Oswald',sans-serif; font-size:10px; color:var(--gold);
+      border:1px dashed var(--gold); border-radius:2px; padding:0 3px; margin-left:4px; }
+.amt { font-family:'IBM Plex Mono',monospace; font-size:10px; margin-top:2px;
+       font-variant-numeric:tabular-nums; }
+
+.grid td[data-status="pending"] { color:var(--chalk); }
+.grid td[data-status="pending"] .amt { color:var(--dim); }
+.grid td[data-status="correct"] { background:rgba(111,207,151,.10); }
+.grid td[data-status="correct"] .amt { color:var(--up); }
+.grid td[data-status="wrong"] { background:rgba(235,87,87,.09); color:var(--dim); }
+.grid td[data-status="wrong"] .amt { color:var(--down); }
+.grid td[data-status="blank"] { background:rgba(235,87,87,.16); }
+.grid td[data-status="blank"] .pk { color:var(--down); }
+.grid td[data-status="blank"] .amt { color:var(--down); }
+.grid td[data-status="void"] { opacity:.45; }
+
+.grid tfoot td, .grid tfoot th { background:var(--card-hi); border-bottom:0; }
+.grid tfoot .wk { font-family:'Oswald',sans-serif; font-size:15px;
+                  font-variant-numeric:tabular-nums; }
+.grid tfoot .stick { font-family:'IBM Plex Mono',monospace; font-size:10px;
+                     letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
+
+a.tab { display:block; text-align:center; text-decoration:none; }
+
+@media (max-width:520px) {
+  .grid .stick { min-width:118px; max-width:135px; }
+  .fx { font-size:11.5px; }
+  .pk { font-size:11px; }
+}

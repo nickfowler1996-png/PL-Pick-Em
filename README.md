@@ -21,6 +21,7 @@ prices, tracked by official Premier League matchweek across four quarters.
 | Settlement | After the last match of the matchweek finishes — nothing hits the leaderboard mid-round |
 | Quarters | Q1 MW1–9 · Q2 MW10–18 · Q3 MW19–28 · Q4 MW29–38 |
 | Payouts | Each quarter winner, plus the season winner |
+| Pick visibility | Your own slip any time; everyone else's from first kick-off onward |
 
 Because doubles don't roll over and an unsubmitted slip costs −$100 a match,
 skipping a week is expensive: with 10 fixtures that's −$1,000 and two boosts
@@ -41,7 +42,9 @@ burned for nothing.
     lib/integration.test.ts 42 tests
     lib/email.test.ts       30 tests
     supabase/schema.sql     tables, lock trigger, standings view, RLS
-    app/api/cron/*          the four scheduled jobs
+    lib/pick-grid.ts        the reveal grid
+    app/everyone/*          everyone's picks, visible after lock
+    app/api/cron/*          the scheduled jobs
     .github/workflows/      cron schedule
 
 ## Tests

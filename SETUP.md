@@ -249,6 +249,7 @@ club name. If the page is blank, check the Vercel deployment logs.
 |---|---|
 | `/` | Jumps to whichever matchweek is currently open |
 | `/matchweek/12` | That round's picks |
+| `/everyone` | What everyone picked — unlocks at first kick-off |
 | `/standings` | The live leaderboard |
 
 Nobody has to remember these. Every email contains a one-tap link that signs

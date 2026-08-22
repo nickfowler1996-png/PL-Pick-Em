@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import type { Multiplier, Outcome, Allowance } from "@/lib/scoring";
 import { ageMinutes, describeAge } from "@/lib/odds-store";
+import Nav from "@/app/components/Nav";
 
 interface Match {
   id: string; home: string; away: string; kickoff: string;
@@ -117,12 +118,16 @@ export default function PickBoard({
           <div className="eyebrow">Premier League · Quarter {matchweek.quarter}</div>
           <h1 className="display">Matchweek {String(matchweek.number).padStart(2, "0")}</h1>
         </div>
-        <a className="lock" href="/standings">
-          {locked ? "Picks are closed" : `Locks ${new Date(matchweek.locksAt).toLocaleString("en-GB", {
-            weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`}
-          <br />Standings →
-        </a>
+        <div className="lock">
+          {locked
+            ? "Picks are closed"
+            : `Locks ${new Date(matchweek.locksAt).toLocaleString("en-GB", {
+                weekday: "short", day: "numeric", month: "short",
+                hour: "2-digit", minute: "2-digit" })}`}
+        </div>
       </header>
+
+      <Nav active="slip" />
 
       {!locked && (
         <div className="ticker">

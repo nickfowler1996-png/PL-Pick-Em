@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase-server";
 import { quarterOf } from "@/lib/matchweek";
+import Nav from "@/app/components/Nav";
 import StandingsLive from "./StandingsLive";
 
 export const dynamic = "force-dynamic";
@@ -27,8 +28,8 @@ export default async function Standings() {
           <div className="eyebrow">Premier League · Quarter {quarter}</div>
           <h1 className="display">Standings</h1>
         </div>
-        <a className="lock" href="/">Back to picks →</a>
       </header>
+      <Nav active="standings" />
       <StandingsLive initialRows={[]} initialProgress={null} quarter={quarter} meId={user.id} />
     </main>
   );
