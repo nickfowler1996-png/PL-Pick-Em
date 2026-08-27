@@ -38,28 +38,43 @@ export default function StandingsLive({
   const [progress, setProgress] = useState(initialProgress);
   const [scope, setScope] = useState<"quarterTotal" | "seasonTotal">("seasonTotal");
   const [pulse, setPulse] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  const refresh = useCallback(async () => {
-    const res = await fetch("/api/standings", { cache: "no-store" });
-    if (!res.ok) return;
-    const data = await res.json();
-    setRows(data.rows);
-    setProgress(data.progress);
-    setPulse(true);
-    setTimeout(() => setPulse(false), 1200);
+  const refresh = useCallback(async (isInitial = false) => {
+    try {
+      const res = await fetch("/api/standings", { cache: "no-store" });
+      if (!res.ok) { setFailed(true); setLoaded(true); return; }
+      const data = await res.json();
+      setRows(data.rows ?? []);
+      setProgress(data.progress ?? null);
+      setFailed(false);
+      setLoaded(true);
+      if (!isInitial) {
+        setPulse(true);
+        setTimeout(() => setPulse(false), 1200);
+      }
+    } catch {
+      setFailed(true);
+      setLoaded(true);
+    }
   }, []);
 
   useEffect(() => {
+    // Load once on mount. The subscription below only reports *changes*, so
+    // without this the table stays empty for a round that settled earlier.
+    refresh(true);
+
     const db = supabaseBrowser();
     let poll: ReturnType<typeof setInterval> | undefined;
 
     const channel = db
       .channel("standings")
-      .on("postgres_changes", { event: "*", schema: "public", table: "matchweek_results" }, refresh)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "matches" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "matchweek_results" }, () => refresh())
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "matches" }, () => refresh())
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          poll ??= setInterval(refresh, 60_000);
+          poll ??= setInterval(() => refresh(), 60_000);
         }
       });
 
@@ -107,8 +122,18 @@ export default function StandingsLive({
         </tbody>
       </table>
 
-      {sorted.length === 0 && (
-        <p className="note">Nothing settled yet. The table fills in after the first matchweek finishes.</p>
+      {!loaded && <p className="note">Loading standings…</p>}
+
+      {loaded && failed && (
+        <div className="ticker" data-error="true">
+          Couldn&apos;t load the standings. Refresh, or sign in again if that doesn&apos;t help.
+        </div>
+      )}
+
+      {loaded && !failed && sorted.length === 0 && (
+        <p className="note">
+          Nothing settled yet. The table fills in once the first matchweek finishes.
+        </p>
       )}
     </>
   );
