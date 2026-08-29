@@ -129,8 +129,9 @@ button:focus-visible, a:focus-visible { outline:2px solid var(--gold); outline-o
 @media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
 
 /* ---- Everyone's picks grid ---------------------------------------- */
+/* Players are rows, matches are columns. The player column is pinned so a
+   10-match round still scrolls sensibly on a phone. */
 
-/* Matchweek switcher */
 .mwpick { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:14px; }
 .mwbtn { background:var(--card); border:1px solid var(--rule); color:var(--dim);
          font-family:'IBM Plex Mono',monospace; font-size:11px; padding:5px 9px;
@@ -138,34 +139,38 @@ button:focus-visible, a:focus-visible { outline:2px solid var(--gold); outline-o
 .mwbtn:hover { color:var(--chalk); border-color:var(--dim); }
 .mwbtn[data-on="true"] { border-color:var(--gold); color:var(--gold); }
 
-/* Horizontal scroll with the fixture column pinned, so a 15-player pool
-   still reads on a phone. */
 .gridscroll { overflow-x:auto; border:1px solid var(--rule); border-radius:2px;
               -webkit-overflow-scrolling:touch; }
 .grid { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; }
 
 .grid th, .grid td { border-bottom:1px solid var(--rule); border-right:1px solid var(--rule);
-                     padding:7px 9px; text-align:center; vertical-align:middle; }
+                     padding:7px 8px; text-align:center; vertical-align:middle; }
+
 .grid thead th { position:sticky; top:0; z-index:2; background:var(--card-hi);
-                 font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:400;
-                 letter-spacing:.1em; text-transform:uppercase; color:var(--dim);
-                 white-space:nowrap; }
-.grid thead th[data-me="true"] { color:var(--gold); }
+                 font-weight:400; white-space:nowrap; }
 
-/* Pinned first column */
+/* Pinned player column */
 .grid .stick { position:sticky; left:0; z-index:3; background:var(--card);
-               text-align:left; min-width:150px; max-width:190px; }
-.grid thead .stick { z-index:4; background:var(--card-hi); }
-.grid tfoot .stick { z-index:4; }
+               text-align:left; min-width:104px; max-width:140px; }
+.grid thead .stick { z-index:4; background:var(--card-hi);
+                     font-family:'IBM Plex Mono',monospace; font-size:10px;
+                     letter-spacing:.13em; text-transform:uppercase; color:var(--dim); }
+.grid tbody .name { font-family:'Oswald',sans-serif; font-size:15px; color:var(--chalk); }
+.grid tbody tr[data-me="true"] .name { color:var(--gold); }
 
-.fx { font-family:'Oswald',sans-serif; font-size:13px; color:var(--chalk); line-height:1.2; }
-.fx i { color:var(--dim); font-style:normal; font-size:10px; padding:0 3px; }
-.fxsub { font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--dim); margin-top:2px; }
+/* Match column headers — club codes only, so columns stay narrow */
+.fxcol { min-width:62px; }
+.fxh { font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:500;
+       color:var(--chalk); letter-spacing:.02em; white-space:nowrap; }
+.fxh i { color:var(--dim); font-style:normal; font-size:9px; padding:0 3px; }
+.fxsub { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--dim);
+         margin-top:3px; letter-spacing:.02em; white-space:nowrap; }
 
-.pk { font-family:'IBM Plex Sans',sans-serif; font-size:12px; white-space:nowrap; }
-.mx { font-family:'Oswald',sans-serif; font-size:10px; color:var(--gold);
-      border:1px dashed var(--gold); border-radius:2px; padding:0 3px; margin-left:4px; }
-.amt { font-family:'IBM Plex Mono',monospace; font-size:10px; margin-top:2px;
+.pk { font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:500;
+      white-space:nowrap; letter-spacing:.02em; }
+.mx { font-family:'Oswald',sans-serif; font-size:9.5px; color:var(--gold);
+      border:1px dashed var(--gold); border-radius:2px; padding:0 2px; margin-left:3px; }
+.amt { font-family:'IBM Plex Mono',monospace; font-size:9.5px; margin-top:2px;
        font-variant-numeric:tabular-nums; }
 
 .grid td[data-status="pending"] { color:var(--chalk); }
@@ -175,20 +180,24 @@ button:focus-visible, a:focus-visible { outline:2px solid var(--gold); outline-o
 .grid td[data-status="wrong"] { background:rgba(235,87,87,.09); color:var(--dim); }
 .grid td[data-status="wrong"] .amt { color:var(--down); }
 .grid td[data-status="blank"] { background:rgba(235,87,87,.16); }
-.grid td[data-status="blank"] .pk { color:var(--down); }
+.grid td[data-status="blank"] .pk,
 .grid td[data-status="blank"] .amt { color:var(--down); }
 .grid td[data-status="void"] { opacity:.45; }
 
-.grid tfoot td, .grid tfoot th { background:var(--card-hi); border-bottom:0; }
-.grid tfoot .wk { font-family:'Oswald',sans-serif; font-size:15px;
-                  font-variant-numeric:tabular-nums; }
-.grid tfoot .stick { font-family:'IBM Plex Mono',monospace; font-size:10px;
-                     letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
+/* Week total, pinned to the right edge of the row */
+.totcol { min-width:74px; }
+.grid thead .totcol { font-family:'IBM Plex Mono',monospace; font-size:10px;
+                      letter-spacing:.13em; text-transform:uppercase; color:var(--dim); }
+.grid .wk { font-family:'Oswald',sans-serif; font-size:15px; background:var(--card-hi);
+            font-variant-numeric:tabular-nums; border-right:0; }
 
 a.tab { display:block; text-align:center; text-decoration:none; }
 
 @media (max-width:520px) {
-  .grid .stick { min-width:118px; max-width:135px; }
-  .fx { font-size:11.5px; }
-  .pk { font-size:11px; }
+  .grid .stick { min-width:82px; max-width:96px; }
+  .grid tbody .name { font-size:13px; }
+  .fxcol { min-width:56px; }
+  .fxh { font-size:10.5px; }
+  .fxh i { padding:0 2px; }
+  .pk { font-size:11.5px; }
 }

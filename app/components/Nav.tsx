@@ -5,7 +5,7 @@ export default function Nav({ active }: { active: "slip" | "everyone" | "standin
   return (
     <nav className="tabs">
       <Link className="tab" data-on={active === "slip"} href="/">Your slip</Link>
-      <Link className="tab" data-on={active === "everyone"} href="/everyone">Everyone</Link>
+      <Link className="tab" data-on={active === "everyone"} href="/everyone">Everyone&apos;s picks</Link>
       <Link className="tab" data-on={active === "standings"} href="/standings">Standings</Link>
     </nav>
   );

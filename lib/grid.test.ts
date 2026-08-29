@@ -86,3 +86,33 @@ check("no picks means none", consensus({ match: matches[1], cells: [] }), null);
 
 console.log(`\n${pass} passed, ${fail} failed\n`);
 if (fail > 0) process.exit(1);
+
+/* ---- appended: club codes for column headers ---- */
+import { abbrev } from "./pick-grid.ts";
+
+console.log("\nClub codes");
+check("Arsenal", abbrev("Arsenal"), "ARS");
+check("Man City", abbrev("Man City"), "MCI");
+check("Man United", abbrev("Man United"), "MUN");
+check("City and United differ", abbrev("Man City") === abbrev("Man United"), false);
+check("Nottingham", abbrev("Nottingham"), "NFO");
+check("Nottingham Forest", abbrev("Nottingham Forest"), "NFO");
+check("Nott'm Forest", abbrev("Nott'm Forest"), "NFO");
+check("Brighton Hove", abbrev("Brighton Hove"), "BHA");
+check("Brighton", abbrev("Brighton"), "BHA");
+check("Wolves", abbrev("Wolves"), "WOL");
+check("West Ham", abbrev("West Ham"), "WHU");
+check("Crystal Palace", abbrev("Crystal Palace"), "CRY");
+check("Coventry City", abbrev("Coventry City"), "COV");
+check("Hull City", abbrev("Hull City"), "HUL");
+check("Ipswich Town", abbrev("Ipswich Town"), "IPS");
+check("unknown club falls back", abbrev("Barnsley"), "BAR");
+check("Sheffield sides differ", abbrev("Sheffield United") === abbrev("Sheffield Wednesday"), false);
+
+console.log("\nShort cell labels");
+check("picked home side", g.rows[0].cells[0].short, "ARS");
+check("draw is D", g.rows[1].cells[0].short, "D");
+check("blank is a dash", g.rows[0].cells[2].short, "—");
+
+console.log(`\nFINAL: ${pass} passed, ${fail} failed\n`);
+if (fail > 0) process.exit(1);

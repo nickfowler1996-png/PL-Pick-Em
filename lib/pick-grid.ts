@@ -39,6 +39,8 @@ export interface GridCell {
   multiplier: Multiplier;
   /** Short label for the chosen side: the club name, "Draw", or "—". */
   label: string;
+  /** Compact form for a dense grid: "ARS", "D", or "—". */
+  short: string;
   priceTaken: number | null;
   status: CellStatus;
   amount: number | null;
@@ -61,10 +63,59 @@ export interface Grid {
 
 const BASE_STAKE = 100;
 
+/**
+ * Three-letter club codes, for use as column headers.
+ *
+ * Keys are matched as prefixes of the normalised name, so both "Nottingham"
+ * and "Nottingham Forest" resolve to NFO. Anything unlisted falls back to its
+ * first three letters, which is fine for a club that turns up after promotion.
+ */
+const CODES: [string, string][] = [
+  ["manchester city", "MCI"], ["manchester united", "MUN"],
+  ["sheffield united", "SHU"], ["sheffield wednesday", "SHW"],
+  ["west bromwich", "WBA"], ["west ham", "WHU"],
+  ["nottingham", "NFO"], ["brighton", "BHA"], ["crystal palace", "CRY"],
+  ["tottenham", "TOT"], ["wolverhampton", "WOL"], ["wolves", "WOL"],
+  ["aston villa", "AVL"], ["newcastle", "NEW"], ["bournemouth", "BOU"],
+  ["arsenal", "ARS"], ["chelsea", "CHE"], ["liverpool", "LIV"],
+  ["everton", "EVE"], ["fulham", "FUL"], ["brentford", "BRE"],
+  ["burnley", "BUR"], ["leeds", "LEE"], ["leicester", "LEI"],
+  ["southampton", "SOU"], ["sunderland", "SUN"], ["ipswich", "IPS"],
+  ["coventry", "COV"], ["hull", "HUL"], ["norwich", "NOR"],
+  ["watford", "WAT"], ["middlesbrough", "MID"], ["stoke", "STK"],
+  ["luton", "LUT"], ["blackburn", "BLB"], ["birmingham", "BIR"],
+  ["preston", "PNE"], ["millwall", "MIL"], ["swansea", "SWA"],
+  ["cardiff", "CAR"], ["plymouth", "PLY"], ["portsmouth", "POR"],
+  ["oxford", "OXF"], ["derby", "DER"], ["wrexham", "WRE"],
+];
+
+export function abbrev(name: string): string {
+  const n = name
+    .toLowerCase()
+    .replace(/['\u2018\u2019]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\bnottm\b/g, "nottingham")
+    .replace(/\bman\b/g, "manchester")
+    .replace(/\b(fc|afc)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  for (const [key, code] of CODES) {
+    if (n === key || n.startsWith(key + " ")) return code;
+  }
+  return n.replace(/ /g, "").slice(0, 3).toUpperCase();
+}
+
 function labelFor(m: GridMatch, outcome: Outcome | null): string {
   if (outcome === null) return "—";
   if (outcome === "DRAW") return "Draw";
   return outcome === "HOME" ? m.home : m.away;
+}
+
+function shortFor(m: GridMatch, outcome: Outcome | null): string {
+  if (outcome === null) return "—";
+  if (outcome === "DRAW") return "D";
+  return abbrev(outcome === "HOME" ? m.home : m.away);
 }
 
 /**
@@ -103,6 +154,7 @@ export function buildGrid(
           outcome: pick?.outcome ?? null,
           multiplier: pick?.multiplier ?? 1,
           label: labelFor(m, pick?.outcome ?? null),
+          short: shortFor(m, pick?.outcome ?? null),
           priceTaken: pick?.priceTaken ?? null,
           status: "void",
           amount: 0,
@@ -118,6 +170,7 @@ export function buildGrid(
           outcome: null,
           multiplier: 1,
           label: "—",
+          short: "—",
           priceTaken: null,
           status: played ? "blank" : "pending",
           amount,
@@ -130,6 +183,7 @@ export function buildGrid(
           outcome: pick.outcome,
           multiplier: pick.multiplier,
           label: labelFor(m, pick.outcome),
+          short: shortFor(m, pick.outcome),
           priceTaken: pick.priceTaken,
           status: "pending",
           amount: null,
@@ -146,6 +200,7 @@ export function buildGrid(
         outcome: pick.outcome,
         multiplier: pick.multiplier,
         label: labelFor(m, pick.outcome),
+        short: shortFor(m, pick.outcome),
         priceTaken: pick.priceTaken,
         status: correct ? "correct" : "wrong",
         amount,
