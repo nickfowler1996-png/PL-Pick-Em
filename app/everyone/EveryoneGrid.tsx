@@ -35,6 +35,13 @@ export default function EveryoneGrid() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Results land every half hour during a round, so refresh quietly rather
+  // than making people reload to watch a match turn green.
+  useEffect(() => {
+    const t = setInterval(() => load(mw ?? undefined), 60_000);
+    return () => clearInterval(t);
+  }, [load, mw]);
+
   if (loading && !data) return <p className="note">Loading…</p>;
 
   if (data && !data.locked) {

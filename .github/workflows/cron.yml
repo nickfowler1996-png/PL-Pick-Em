@@ -9,13 +9,14 @@ on:
     - cron: "47 * * * *"      # settle         — hourly
     - cron: "*/15 * * * *"    # snapshot-odds  — every 15 min (only spends a
                               #   credit when the cadence says it's due)
+    - cron: "8,38 * * * *"    # sync-results   — every 30 min while a round is on
   workflow_dispatch:
     inputs:
       job:
         description: Job to run manually
         required: true
         type: choice
-        options: [sync-fixtures, send-invites, send-reminders, settle, snapshot-odds]
+        options: [sync-fixtures, sync-results, send-invites, send-reminders, settle, snapshot-odds]
 
 jobs:
   run:
@@ -30,6 +31,7 @@ jobs:
             "23 * * * *")   echo "job=send-reminders" >> $GITHUB_OUTPUT ;;
             "47 * * * *")   echo "job=settle"         >> $GITHUB_OUTPUT ;;
             "*/15 * * * *") echo "job=snapshot-odds"  >> $GITHUB_OUTPUT ;;
+            "8,38 * * * *") echo "job=sync-results"   >> $GITHUB_OUTPUT ;;
             *)              echo "job=${{ inputs.job }}" >> $GITHUB_OUTPUT ;;
           esac
 

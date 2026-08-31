@@ -83,7 +83,8 @@ Roughly $20–30/month all in, nearly all of it the odds feed.
 
 | Job | Cadence | Does |
 |---|---|---|
-| `sync-fixtures` | daily | Pulls fixtures, regroups by matchday, recomputes send windows |
+| `sync-fixtures` | daily | Pulls all fixtures, regroups by matchday, recomputes send windows |
+| `sync-results` | every 30 min | Scores for the round in progress, one matchday at a time |
 | `send-invites` | every 6h | Emails any matchweek whose `send_at` has passed |
 | `send-reminders` | hourly | Nudges incomplete slips 6h before lock |
 | `snapshot-odds` | every 15 min | Stores prices, but only spends a credit when due |

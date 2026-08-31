@@ -77,6 +77,33 @@ export function mapFixture(raw: RawMatch): Fixture {
 /* Fetch                                                               */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Fetch a single matchday.
+ *
+ * Much lighter than pulling the whole season: one request, ten fixtures, ten
+ * rows touched. Used by the results sync so scores land within half an hour of
+ * full time rather than waiting for the nightly job.
+ */
+export async function fetchMatchdayFixtures(
+  season: number,
+  matchday: number
+): Promise<Fixture[]> {
+  const token = process.env.FOOTBALL_DATA_TOKEN;
+  if (!token) throw new Error("FOOTBALL_DATA_TOKEN is not set");
+
+  const res = await fetch(
+    `${BASE}/competitions/${COMPETITION}/matches?season=${season}&matchday=${matchday}`,
+    { headers: { "X-Auth-Token": token }, cache: "no-store" }
+  );
+
+  if (!res.ok) {
+    throw new Error(`football-data ${res.status}: ${await res.text()}`);
+  }
+
+  const body = (await res.json()) as { matches: RawMatch[] };
+  return body.matches.map(mapFixture);
+}
+
 export async function fetchSeasonFixtures(season: number): Promise<Fixture[]> {
   const token = process.env.FOOTBALL_DATA_TOKEN;
   if (!token) throw new Error("FOOTBALL_DATA_TOKEN is not set");
