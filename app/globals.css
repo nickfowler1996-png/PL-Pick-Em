@@ -201,3 +201,7 @@ a.tab { display:block; text-align:center; text-decoration:none; }
   .fxh i { padding:0 2px; }
   .pk { font-size:11.5px; }
 }
+
+/* Running total for a round that hasn't settled yet */
+.lb td.live { color:var(--gold); }
+.lb th:nth-child(3) { white-space:nowrap; }

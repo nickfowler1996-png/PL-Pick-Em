@@ -8,6 +8,8 @@ export interface Row {
   quarterTotal: number;
   seasonTotal: number;
   matchweeksWon: number;
+  /** This week's running total, or null if the round hasn't started scoring. */
+  weekTotal: number | null;
 }
 
 export interface Progress {
@@ -15,6 +17,7 @@ export interface Progress {
   finished: number;
   total: number;
   settled: boolean;
+  locked: boolean;
 }
 
 const money = (n: number) => {
@@ -40,6 +43,8 @@ export default function StandingsLive({
   const [pulse, setPulse] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [provisional, setProvisional] = useState(false);
+  const [liveMw, setLiveMw] = useState<number | null>(null);
 
   const refresh = useCallback(async (isInitial = false) => {
     try {
@@ -48,6 +53,8 @@ export default function StandingsLive({
       const data = await res.json();
       setRows(data.rows ?? []);
       setProgress(data.progress ?? null);
+      setProvisional(Boolean(data.provisional));
+      setLiveMw(data.liveMatchweek ?? null);
       setFailed(false);
       setLoaded(true);
       if (!isInitial) {
@@ -68,6 +75,10 @@ export default function StandingsLive({
     const db = supabaseBrowser();
     let poll: ReturnType<typeof setInterval> | undefined;
 
+    // Results are written every 30 minutes during a round; poll as a backstop
+    // so the table moves even where websockets are blocked.
+    const tick = setInterval(() => refresh(), 60_000);
+
     const channel = db
       .channel("standings")
       .on("postgres_changes", { event: "*", schema: "public", table: "matchweek_results" }, () => refresh())
@@ -78,7 +89,11 @@ export default function StandingsLive({
         }
       });
 
-    return () => { db.removeChannel(channel); if (poll) clearInterval(poll); };
+    return () => {
+      clearInterval(tick);
+      db.removeChannel(channel);
+      if (poll) clearInterval(poll);
+    };
   }, [refresh]);
 
   const sorted = [...rows].sort((a, b) => b[scope] - a[scope]);
@@ -90,7 +105,7 @@ export default function StandingsLive({
         {progress
           ? progress.settled
             ? `Matchweek ${progress.matchweek} settled · updates live`
-            : `Matchweek ${progress.matchweek} in progress · ${progress.finished} of ${progress.total} played · the table moves when the round finishes`
+            : `Matchweek ${progress.matchweek} · ${progress.finished} of ${progress.total} played · totals update as matches finish`
           : "Updates live"}
       </div>
 
@@ -106,7 +121,9 @@ export default function StandingsLive({
       <table className="lb">
         <thead>
           <tr>
-            <th /><th>Player</th><th>Q{quarter}</th><th>Season</th><th>Weeks won</th>
+            <th /><th>Player</th>
+            {provisional && <th>MW{liveMw}</th>}
+            <th>Q{quarter}</th><th>Season</th><th>Weeks won</th>
           </tr>
         </thead>
         <tbody>
@@ -114,6 +131,11 @@ export default function StandingsLive({
             <tr key={r.playerId} data-me={r.playerId === meId}>
               <td>{i + 1}</td>
               <td>{r.name}</td>
+              {provisional && (
+                <td className="live">
+                  {r.weekTotal === null ? "—" : money(r.weekTotal)}
+                </td>
+              )}
               <td className={scope === "quarterTotal" ? "sorted" : "unsorted"}>{money(r.quarterTotal)}</td>
               <td className={scope === "seasonTotal" ? "sorted" : "unsorted"}>{money(r.seasonTotal)}</td>
               <td className="unsorted">{r.matchweeksWon}</td>
@@ -128,6 +150,13 @@ export default function StandingsLive({
         <div className="ticker" data-error="true">
           Couldn&apos;t load the standings. Refresh, or sign in again if that doesn&apos;t help.
         </div>
+      )}
+
+      {provisional && (
+        <p className="note">
+          Matchweek {liveMw} is still being played, so quarter and season totals
+          include a running score for it. They firm up when the round settles.
+        </p>
       )}
 
       {loaded && !failed && sorted.length === 0 && (

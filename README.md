@@ -18,7 +18,8 @@ prices, tracked by official Premier League matchweek across four quarters.
 | Quad | 1 per season |
 | Multiplier pools | Independent — a triple does not consume a double. A maximum week is 2 doubles + 2 triples + 1 quad = **5 boosted matches** |
 | Postponed fixture | Voided: scores nothing, penalises nothing, and refunds any triple or quad staked on it |
-| Settlement | After the last match of the matchweek finishes — nothing hits the leaderboard mid-round |
+| Settlement | After the last match of the matchweek finishes |
+| Leaderboard | Updates live through the round — the in-progress week is scored from finished matches and firms up at settlement |
 | Quarters | Q1 MW1–9 · Q2 MW10–18 · Q3 MW19–28 · Q4 MW29–38 |
 | Payouts | Each quarter winner, plus the season winner |
 | Pick visibility | Your own slip any time; everyone else's from first kick-off onward |
