@@ -1,42 +1,73 @@
 name: Pick 'em jobs
 
-# Vercel's hobby tier limits cron frequency, so the schedule lives here instead.
+# GitHub bills every workflow run as a full minute, even a five-second curl.
+# Six separate schedules meant ~197 runs a day, about 5,900 minutes a month,
+# against a 2,000-minute free allowance for private repos.
+#
+# So: one run per tick, doing everything in sequence. Each route decides for
+# itself whether there's anything to do and returns immediately if not, so
+# calling them all every time is cheap.
+#
+#   every 30 min -> ~49 runs/day -> ~1,470 min/month   fits the free tier
+#
+# If the repository is public, Actions minutes are unlimited and you can
+# tighten this to "*/15 * * * *" for fresher odds near a deadline.
+
 on:
   schedule:
-    - cron: "17 6 * * *"      # sync-fixtures  — daily
-    - cron: "0 */6 * * *"     # send-invites   — every 6 hours
-    - cron: "23 * * * *"      # send-reminders — hourly
-    - cron: "47 * * * *"      # settle         — hourly
-    - cron: "*/15 * * * *"    # snapshot-odds  — every 15 min (only spends a
-                              #   credit when the cadence says it's due)
-    - cron: "8,38 * * * *"    # sync-results   — every 30 min while a round is on
+    - cron: "*/30 * * * *"     # everything except the nightly fixture pull
+    - cron: "17 6 * * *"       # sync-fixtures, once a day
   workflow_dispatch:
     inputs:
       job:
-        description: Job to run manually
+        description: Run a single job by hand
         required: true
         type: choice
-        options: [sync-fixtures, sync-results, send-invites, send-reminders, settle, snapshot-odds]
+        options:
+          - all
+          - sync-fixtures
+          - sync-results
+          - snapshot-odds
+          - settle
+          - send-invites
+          - send-reminders
 
 jobs:
-  run:
+  tick:
     runs-on: ubuntu-latest
     steps:
-      - name: Pick job for this schedule
-        id: pick
+      - name: Work out what to run
+        id: plan
         run: |
           case "${{ github.event.schedule }}" in
-            "17 6 * * *")   echo "job=sync-fixtures"  >> $GITHUB_OUTPUT ;;
-            "0 */6 * * *")  echo "job=send-invites"   >> $GITHUB_OUTPUT ;;
-            "23 * * * *")   echo "job=send-reminders" >> $GITHUB_OUTPUT ;;
-            "47 * * * *")   echo "job=settle"         >> $GITHUB_OUTPUT ;;
-            "*/15 * * * *") echo "job=snapshot-odds"  >> $GITHUB_OUTPUT ;;
-            "8,38 * * * *") echo "job=sync-results"   >> $GITHUB_OUTPUT ;;
-            *)              echo "job=${{ inputs.job }}" >> $GITHUB_OUTPUT ;;
+            "17 6 * * *") echo "list=sync-fixtures" >> $GITHUB_OUTPUT ;;
+            "*/30 * * * *") echo "list=sync-results snapshot-odds settle send-invites send-reminders" >> $GITHUB_OUTPUT ;;
+            *)
+              if [ "${{ inputs.job }}" = "all" ]; then
+                echo "list=sync-fixtures sync-results snapshot-odds settle send-invites send-reminders" >> $GITHUB_OUTPUT
+              else
+                echo "list=${{ inputs.job }}" >> $GITHUB_OUTPUT
+              fi
+              ;;
           esac
 
-      - name: Call the route
+      - name: Call the routes
         run: |
-          curl --fail-with-body -sS -X POST \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.APP_URL }}/api/cron/${{ steps.pick.outputs.job }}"
+          FAILED=""
+          for job in ${{ steps.plan.outputs.list }}; do
+            echo "── $job"
+            # Keep going if one route fails, so a single hiccup doesn't hide
+            # the others or spam a failure email for every scheduled tick.
+            CODE=$(curl -sS -o /tmp/out.json -w "%{http_code}" -X POST \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              "${{ secrets.APP_URL }}/api/cron/$job" || echo "000")
+            echo "   HTTP $CODE"
+            cat /tmp/out.json 2>/dev/null | head -c 2000
+            echo
+            if [ "$CODE" != "200" ]; then FAILED="$FAILED $job"; fi
+          done
+
+          if [ -n "$FAILED" ]; then
+            echo "::error::Failed:$FAILED"
+            exit 1
+          fi

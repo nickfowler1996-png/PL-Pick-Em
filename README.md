@@ -86,6 +86,14 @@ Roughly $20–30/month all in, nearly all of it the odds feed.
 |---|---|---|
 | `sync-fixtures` | daily | Pulls all fixtures, regroups by matchday, recomputes send windows |
 | `sync-results` | every 30 min | Scores for the round in progress, one matchday at a time |
+
+All of these except `sync-fixtures` share **one** workflow run every 30 minutes.
+GitHub bills a run as a whole minute regardless of how long it takes, so six
+separate schedules cost ~5,900 minutes a month against a 2,000 free allowance.
+Consolidated, it's ~1,470. Each route returns immediately when it has nothing
+to do, so calling them all every tick is cheap.
+
+A public repo gets unlimited Actions minutes, in which case `*/15` is fine.
 | `send-invites` | every 6h | Emails any matchweek whose `send_at` has passed |
 | `send-reminders` | hourly | Nudges incomplete slips 6h before lock |
 | `snapshot-odds` | every 15 min | Stores prices, but only spends a credit when due |
