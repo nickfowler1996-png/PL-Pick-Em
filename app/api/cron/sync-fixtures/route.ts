@@ -98,6 +98,9 @@ export async function POST(req: Request) {
     errors,
   };
 
-  // Fail loudly so the Actions run goes red instead of reporting a false pass.
-  return NextResponse.json(body, { status: errors.length > 0 ? 500 : 200 });
+  // Only a total failure is worth failing the run over. A few rows erroring
+  // out of 380 gets retried on the next nightly pass, and a red run every time
+  // trains you to ignore the alert.
+  const allFailed = matchweeksWritten === 0 && errors.length > 0;
+  return NextResponse.json(body, { status: allFailed ? 500 : 200 });
 }
