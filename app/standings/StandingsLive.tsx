@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { groupTotals } from "@/lib/scoring";
 
 export interface Row {
   playerId: string;
@@ -97,6 +98,7 @@ export default function StandingsLive({
   }, [refresh]);
 
   const sorted = [...rows].sort((a, b) => b[scope] - a[scope]);
+  const group = groupTotals(rows);
 
   return (
     <>
@@ -142,6 +144,27 @@ export default function StandingsLive({
             </tr>
           ))}
         </tbody>
+
+        {sorted.length > 0 && (
+          <tfoot>
+            <tr>
+              <td />
+              <td className="grpname">Group</td>
+              {provisional && (
+                <td className={`grp ${(group.week ?? 0) < 0 ? "down" : "up"}`}>
+                  {group.week === null ? "—" : money(group.week)}
+                </td>
+              )}
+              <td className={`grp ${group.quarter < 0 ? "down" : "up"}`}>
+                {money(group.quarter)}
+              </td>
+              <td className={`grp ${group.season < 0 ? "down" : "up"}`}>
+                {money(group.season)}
+              </td>
+              <td className="grp unsorted">{group.players}</td>
+            </tr>
+          </tfoot>
+        )}
       </table>
 
       {!loaded && <p className="note">Loading standings…</p>}
@@ -150,6 +173,19 @@ export default function StandingsLive({
         <div className="ticker" data-error="true">
           Couldn&apos;t load the standings. Refresh, or sign in again if that doesn&apos;t help.
         </div>
+      )}
+
+      {sorted.length > 0 && (
+        <p className="note">
+          The group is {group.season < 0 ? "down" : "up"}{" "}
+          <strong className={group.season < 0 ? "down" : "up"}>
+            {money(Math.abs(group.season))}
+          </strong>{" "}
+          on the season, {money(group.averageSeason)} a head across{" "}
+          {group.players} player{group.players === 1 ? "" : "s"}. Since a pick at
+          fair odds is worth nothing in the long run, a positive number means
+          the group has collectively beaten the prices it was offered.
+        </p>
       )}
 
       {provisional && (

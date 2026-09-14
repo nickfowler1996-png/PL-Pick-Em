@@ -205,3 +205,11 @@ a.tab { display:block; text-align:center; text-decoration:none; }
 /* Running total for a round that hasn't settled yet */
 .lb td.live { color:var(--gold); }
 .lb th:nth-child(3) { white-space:nowrap; }
+
+/* Group aggregate row */
+.lb tfoot td { border-top:1px solid var(--rule); border-bottom:0;
+               padding-top:12px; background:rgba(255,255,255,.015); }
+.lb tfoot .grpname { font-family:'Oswald',sans-serif; font-size:15px;
+                     color:var(--dim); letter-spacing:.04em; }
+.lb tfoot .grp { font-family:'Oswald',sans-serif; font-size:16px;
+                 font-variant-numeric:tabular-nums; }

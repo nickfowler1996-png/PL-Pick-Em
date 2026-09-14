@@ -345,3 +345,44 @@ export function buildStandings(
 
   return [...acc.values()];
 }
+
+/* ------------------------------------------------------------------ */
+/* Group aggregate                                                     */
+/* ------------------------------------------------------------------ */
+
+export interface GroupTotals {
+  players: number;
+  week: number | null;
+  quarter: number;
+  season: number;
+  /** Season total divided by the number of players. */
+  averageSeason: number;
+}
+
+/**
+ * Sum the pool.
+ *
+ * Best read as a scoreboard against the bookmakers rather than a pot of money:
+ * under net scoring a pick at fair odds is worth nothing in expectation, so a
+ * group total above zero means the pool has collectively beaten the prices it
+ * was offered, and below zero means it hasn't.
+ */
+export function groupTotals(
+  rows: { quarterTotal: number; seasonTotal: number; weekTotal?: number | null }[]
+): GroupTotals {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+
+  const weekValues = rows
+    .map((r) => r.weekTotal)
+    .filter((v): v is number => typeof v === "number");
+
+  const season = round2(rows.reduce((a, r) => a + r.seasonTotal, 0));
+
+  return {
+    players: rows.length,
+    week: weekValues.length > 0 ? round2(weekValues.reduce((a, v) => a + v, 0)) : null,
+    quarter: round2(rows.reduce((a, r) => a + r.quarterTotal, 0)),
+    season,
+    averageSeason: rows.length > 0 ? round2(season / rows.length) : 0,
+  };
+}

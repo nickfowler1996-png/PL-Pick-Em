@@ -1,6 +1,6 @@
 import {
   computeAllowance,
-  MAX_BOOSTED_PER_WEEK,
+  MAX_BOOSTED_PER_WEEK, groupTotals,
   settlePick, settlePlayerMatchweek, validateSlip, buildStandings,
   toDecimal, toAmerican, type StoredPick, type SettledMatch,
 } from "./scoring.ts";
@@ -262,6 +262,33 @@ check("earlier quad doesn't block this week's triples", validateSlip(
   [{ multiplier: 3 }, { multiplier: 3 }],
   { tripleUpgradesUsedThisQuarter: 0, quadUsedThisSeason: true }
 ).length, 0);
+
+console.log(`\nFINAL: ${pass} passed, ${fail} failed\n`);
+if (fail > 0) process.exit(1);
+
+/* ---- appended: group aggregate ---- */
+console.log("\nGroup aggregate");
+const board = [
+  { quarterTotal: 300, seasonTotal: 1200, weekTotal: 150 },
+  { quarterTotal: -200, seasonTotal: -500, weekTotal: -100 },
+  { quarterTotal: 100, seasonTotal: 400, weekTotal: null },
+];
+const grp = groupTotals(board);
+check("counts players", grp.players, 3);
+check("sums the quarter", grp.quarter, 200);
+check("sums the season", grp.season, 1100);
+check("sums only the weeks that have scored", grp.week, 50);
+check("average per player", grp.averageSeason, 366.67);
+check("all weeks unscored gives null", groupTotals([{ quarterTotal: 0, seasonTotal: 0, weekTotal: null }]).week, null);
+check("empty board doesn't divide by zero", groupTotals([]).averageSeason, 0);
+check("empty board season", groupTotals([]).season, 0);
+
+const losing = groupTotals([
+  { quarterTotal: -400, seasonTotal: -900, weekTotal: -200 },
+  { quarterTotal: -100, seasonTotal: -300, weekTotal: -50 },
+]);
+check("a losing pool sums negative", losing.season, -1200);
+check("negative average", losing.averageSeason, -600);
 
 console.log(`\nFINAL: ${pass} passed, ${fail} failed\n`);
 if (fail > 0) process.exit(1);
