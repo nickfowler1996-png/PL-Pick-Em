@@ -116,3 +116,40 @@ check("blank is a dash", g.rows[0].cells[2].short, "—");
 
 console.log(`\nFINAL: ${pass} passed, ${fail} failed\n`);
 if (fail > 0) process.exit(1);
+
+/* ---- appended: per-match reveal ---- */
+console.log("\nHidden until kick-off");
+
+const future: GridMatch[] = [
+  { id: "f1", home: "Arsenal", away: "Forest", kickoff: "2099-01-01T00:00:00Z",
+    result: null, voided: false, status: "SCHEDULED", hidden: true },
+];
+const futurePicks: GridPick[] = [
+  { playerId: "p1", matchId: "f1", outcome: "HOME", multiplier: 2, priceTaken: -110, settledAmount: null },
+  { playerId: "p2", matchId: "f1", outcome: "AWAY", multiplier: 1, priceTaken: 300, settledAmount: null },
+];
+
+const mine = buildGrid(future, players, futurePicks, { meId: "p1" });
+check("my own pick stays visible", mine.rows[0].cells[0].short, "ARS");
+check("my multiplier stays visible", mine.rows[0].cells[0].multiplier, 2);
+check("someone else's is concealed", mine.rows[0].cells[1].status, "hidden");
+check("concealed cell shows a dot", mine.rows[0].cells[1].short, "·");
+check("concealed cell leaks no side", mine.rows[0].cells[1].outcome, null);
+check("concealed cell leaks no multiplier", mine.rows[0].cells[1].multiplier, 1);
+check("a non-picker is concealed too", mine.rows[0].cells[2].status, "hidden");
+
+const theirs = buildGrid(future, players, futurePicks, { meId: "p2" });
+check("the other player sees their own", theirs.rows[0].cells[1].short, "FOR");
+check("and not mine", theirs.rows[0].cells[0].status, "hidden");
+
+const noViewer = buildGrid(future, players, futurePicks);
+check("with no viewer everything is concealed", noViewer.rows[0].cells[0].status, "hidden");
+
+// Once it kicks off, nothing is hidden.
+const started = buildGrid(
+  [{ ...future[0], hidden: false }], players, futurePicks, { meId: "p1" }
+);
+check("after kick-off others are visible", started.rows[0].cells[1].short, "FOR");
+
+console.log(`\nFINAL: ${pass} passed, ${fail} failed\n`);
+if (fail > 0) process.exit(1);

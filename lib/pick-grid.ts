@@ -20,6 +20,8 @@ export interface GridMatch {
   result: Outcome | null;
   voided: boolean;
   status: string;
+  /** True before this match kicks off: other players' picks stay concealed. */
+  hidden?: boolean;
 }
 
 export interface GridPick {
@@ -31,7 +33,7 @@ export interface GridPick {
   settledAmount: number | null;
 }
 
-export type CellStatus = "pending" | "correct" | "wrong" | "blank" | "void";
+export type CellStatus = "pending" | "correct" | "wrong" | "blank" | "void" | "hidden";
 
 export interface GridCell {
   playerId: string;
@@ -129,7 +131,8 @@ function shortFor(m: GridMatch, outcome: Outcome | null): string {
 export function buildGrid(
   matches: GridMatch[],
   players: GridPlayer[],
-  picks: GridPick[]
+  picks: GridPick[],
+  opts: { meId?: string } = {}
 ): Grid {
   const byMatch = new Map<string, Map<string, GridPick>>();
   for (const p of picks) {
@@ -147,6 +150,20 @@ export function buildGrid(
     const cells: GridCell[] = players.map((pl) => {
       const pick = picksHere?.get(pl.id);
       const acc = running.get(pl.id)!;
+
+      // Before kick-off you see your own pick and nobody else's.
+      if (m.hidden && pl.id !== opts.meId) {
+        return {
+          playerId: pl.id,
+          outcome: null,
+          multiplier: 1,
+          label: "Hidden until kick-off",
+          short: "·",
+          priceTaken: null,
+          status: "hidden",
+          amount: null,
+        };
+      }
 
       if (m.voided) {
         return {

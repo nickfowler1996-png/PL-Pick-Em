@@ -49,9 +49,10 @@ export async function GET() {
 
   /* ---- the round in progress, scored live ---- */
 
+  // Matches lock individually now, so a round starts scoring as soon as its
+  // first fixture is done rather than waiting for a round-wide deadline.
   const liveMw = latest.data;
-  const liveLocked = liveMw ? new Date() >= new Date(liveMw.locks_at) : false;
-  const liveOpen = liveMw ? !liveMw.settled_at && liveLocked : false;
+  const liveOpen = liveMw ? !liveMw.settled_at : false;
 
   const weekTotals = new Map<string, number | null>();
   let progress = null;
@@ -67,7 +68,7 @@ export async function GET() {
       finished: (matches ?? []).filter((m) => m.status === "FINISHED").length,
       total: (matches ?? []).length,
       settled: Boolean(liveMw.settled_at),
-      locked: liveLocked,
+      locked: true,
     };
 
     if (liveOpen) {
@@ -81,13 +82,15 @@ export async function GET() {
         (matches ?? []).map((m) => ({
           id: m.id, home: m.home_team, away: m.away_team, kickoff: m.kickoff,
           result: m.result, voided: m.voided, status: m.status,
+          hidden: new Date(m.kickoff) > new Date(),
         })),
         (players ?? []).map((p) => ({ id: p.id, name: p.display_name })),
         (picks ?? []).map((p): GridPick => ({
           playerId: p.player_id, matchId: p.match_id, outcome: p.outcome,
           multiplier: p.multiplier, priceTaken: p.price_taken,
           settledAmount: p.settled_amount === null ? null : Number(p.settled_amount),
-        }))
+        })),
+        { meId: user.id }
       );
 
       for (const t of grid.totals) weekTotals.set(t.playerId, t.total);

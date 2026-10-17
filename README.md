@@ -12,7 +12,7 @@ prices, tracked by official Premier League matchweek across four quarters.
 | Wrong pick | −$100 |
 | **No pick submitted** | **−$100 per match, same as picking wrong** |
 | Odds | Live at tap time; the price is stamped onto the pick |
-| Picks lock | First kickoff of the matchweek, same instant for everyone |
+| Picks lock | Each match at its own kick-off — a Monday fixture stays open all weekend |
 | Doubles | 2 per matchweek — **unused doubles expire, no rollover** |
 | Triples | 2 per quarter |
 | Quad | 1 per season |
@@ -22,7 +22,7 @@ prices, tracked by official Premier League matchweek across four quarters.
 | Leaderboard | Updates live through the round — the in-progress week is scored from finished matches and firms up at settlement |
 | Quarters | Q1 MW1–9 · Q2 MW10–18 · Q3 MW19–28 · Q4 MW29–38 |
 | Payouts | Each quarter winner, plus the season winner |
-| Pick visibility | Your own slip any time; everyone else's from first kick-off onward |
+| Pick visibility | Your own any time; everyone else's on a match from that match's kick-off |
 
 Because doubles don't roll over and an unsubmitted slip costs −$100 a match,
 skipping a week is expensive: with 10 fixtures that's −$1,000 and two boosts

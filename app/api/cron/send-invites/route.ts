@@ -21,9 +21,11 @@ export async function POST(req: Request) {
 
   const { data: due, error: mwError } = await db
     .from("matchweeks")
-    .select("id, mw_number, quarter, send_mode, first_kickoff, locks_at")
+    .select("id, mw_number, quarter, send_mode, first_kickoff, last_kickoff, locks_at")
     .lte("send_at", now)
-    .gt("locks_at", now)
+    // Matches lock individually, so the round is still live until the last
+    // kick-off — a late joiner can still pick the back end of the week.
+    .gt("last_kickoff", now)
     .order("mw_number");
 
   if (mwError) return NextResponse.json({ error: mwError.message }, { status: 500 });

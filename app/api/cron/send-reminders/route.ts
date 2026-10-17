@@ -22,9 +22,9 @@ export async function POST(req: Request) {
 
   const { data: upcoming, error: mwError } = await db
     .from("matchweeks")
-    .select("id, mw_number, send_at, locks_at")
+    .select("id, mw_number, send_at, locks_at, last_kickoff")
     .lte("send_at", now.toISOString())
-    .gt("locks_at", now.toISOString());
+    .gt("last_kickoff", now.toISOString());
 
   if (mwError) return NextResponse.json({ error: mwError.message }, { status: 500 });
 

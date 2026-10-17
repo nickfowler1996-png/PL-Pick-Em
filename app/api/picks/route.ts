@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
   const { data: match } = await admin
     .from("matches")
-    .select("id, home_team, away_team, voided, matchweeks!inner(id, mw_number, season, quarter, locks_at)")
+    .select("id, home_team, away_team, kickoff, voided, matchweeks!inner(id, mw_number, season, quarter)")
     .eq("id", body.matchId)
     .single();
 
@@ -43,8 +43,12 @@ export async function POST(req: Request) {
 
   const mw = (match as any).matchweeks;
 
-  if (new Date() >= new Date(mw.locks_at)) {
-    return NextResponse.json({ error: "Picks closed when the first match kicked off." }, { status: 409 });
+  // Each match locks at its own kick-off.
+  if (new Date() >= new Date((match as any).kickoff)) {
+    return NextResponse.json(
+      { error: "That match has kicked off — picks for it are closed." },
+      { status: 409 }
+    );
   }
 
   // Price comes from the stored snapshot. Never trust a price from the client.

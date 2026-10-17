@@ -23,11 +23,11 @@ export async function GET(req: Request) {
   const now = new Date().toISOString();
   const { data: mw } = requested
     ? await db.from("matchweeks")
-        .select("id, mw_number, quarter, locks_at, settled_at")
+        .select("id, mw_number, quarter, first_kickoff, settled_at")
         .eq("mw_number", requested).maybeSingle()
     : await db.from("matchweeks")
-        .select("id, mw_number, quarter, locks_at, settled_at")
-        .lte("locks_at", now)
+        .select("id, mw_number, quarter, first_kickoff, settled_at")
+        .lte("first_kickoff", now)
         .order("mw_number", { ascending: false })
         .limit(1).maybeSingle();
 
@@ -35,13 +35,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ locked: false, reason: "no_locked_matchweek" });
   }
 
-  const locked = new Date() >= new Date(mw.locks_at);
-  if (!locked) {
+  // Matches now lock individually, so a round opens up as it goes rather than
+  // all at once. Show it as soon as the first fixture has started.
+  const firstStarted = new Date() >= new Date(mw.first_kickoff);
+  if (!firstStarted) {
     return NextResponse.json({
       locked: false,
       reason: "not_yet",
       matchweek: mw.mw_number,
-      locksAt: mw.locks_at,
+      locksAt: mw.first_kickoff,
     });
   }
 
@@ -63,20 +65,22 @@ export async function GET(req: Request) {
   const { data: available } = await db
     .from("matchweeks")
     .select("mw_number")
-    .lte("locks_at", now)
+    .lte("first_kickoff", now)
     .order("mw_number");
 
   const grid = buildGrid(
     (matches ?? []).map((m) => ({
       id: m.id, home: m.home_team, away: m.away_team, kickoff: m.kickoff,
       result: m.result, voided: m.voided, status: m.status,
+      hidden: new Date(m.kickoff) > new Date(),
     })),
     (players ?? []).map((p) => ({ id: p.id, name: p.display_name })),
     (picks ?? []).map((p): GridPick => ({
       playerId: p.player_id, matchId: p.match_id, outcome: p.outcome,
       multiplier: p.multiplier, priceTaken: p.price_taken,
       settledAmount: p.settled_amount === null ? null : Number(p.settled_amount),
-    }))
+    })),
+    { meId: user.id }
   );
 
   return NextResponse.json({

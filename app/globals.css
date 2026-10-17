@@ -213,3 +213,9 @@ a.tab { display:block; text-align:center; text-decoration:none; }
                      color:var(--dim); letter-spacing:.04em; }
 .lb tfoot .grp { font-family:'Oswald',sans-serif; font-size:16px;
                  font-variant-numeric:tabular-nums; }
+
+/* Per-match locking */
+.match[data-started="true"] { opacity:.72; }
+.ko[data-locked="true"] { color:var(--gold); }
+.grid td[data-status="hidden"] { opacity:.35; }
+.grid td[data-status="hidden"] .pk { color:var(--dim); letter-spacing:.2em; }

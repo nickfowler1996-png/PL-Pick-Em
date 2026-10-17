@@ -35,7 +35,10 @@ export default function PickBoard({
   const [oddsLoaded, setOddsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
-  const [locked, setLocked] = useState(() => new Date() >= new Date(matchweek.locksAt));
+  // Matches lock one at a time now, so track the clock rather than a single
+  // round-wide flag.
+  const [clock, setClock] = useState(() => Date.now());
+  const started = (m: Match) => clock >= new Date(m.kickoff).getTime();
 
   const loadOdds = useCallback(async () => {
     const res = await fetch(`/api/odds?mw=${matchweek.number}`, { cache: "no-store" });
@@ -49,9 +52,9 @@ export default function PickBoard({
   useEffect(() => {
     loadOdds();
     const t = setInterval(loadOdds, 60_000);
-    const l = setInterval(() => setLocked(new Date() >= new Date(matchweek.locksAt)), 10_000);
+    const l = setInterval(() => setClock(Date.now()), 10_000);
     return () => { clearInterval(t); clearInterval(l); };
-  }, [loadOdds, matchweek.locksAt]);
+  }, [loadOdds]);
 
   // Three independent pools — a triple doesn't consume a double.
   const used = {
@@ -110,6 +113,7 @@ export default function PickBoard({
 
   const made = Object.keys(picks).length;
   const playable = matches.filter((m) => !m.voided);
+  const openCount = playable.filter((m) => clock < new Date(m.kickoff).getTime()).length;
 
   return (
     <main className="wrap">
@@ -119,17 +123,16 @@ export default function PickBoard({
           <h1 className="display">Matchweek {String(matchweek.number).padStart(2, "0")}</h1>
         </div>
         <div className="lock">
-          {locked
-            ? "Picks are closed"
-            : `Locks ${new Date(matchweek.locksAt).toLocaleString("en-GB", {
-                weekday: "short", day: "numeric", month: "short",
-                hour: "2-digit", minute: "2-digit" })}`}
+          {openCount === 0
+            ? "Every match has kicked off"
+            : `${openCount} match${openCount === 1 ? "" : "es"} still open`}
+          <br />Each locks at its own kick-off
         </div>
       </header>
 
       <Nav active="slip" />
 
-      {!locked && (
+      {openCount > 0 && (
         <div className="ticker">
           <span className="dot" />
           {pricedAt
@@ -140,7 +143,7 @@ export default function PickBoard({
         </div>
       )}
 
-      {matchweek.compressed && !locked && (
+      {matchweek.compressed && openCount > 0 && (
         <div className="ticker" data-warn="true">
           Short week — this round follows straight on from the last one.
         </div>
@@ -190,7 +193,8 @@ export default function PickBoard({
             {mult > 1 && <div className="stamp">{LABEL[mult]}</div>}
             <div className="mhead">
               <div className="teams">{m.home} <i>v</i> {m.away}</div>
-              <div className="ko">
+              <div className="ko" data-locked={started(m)}>
+                {started(m) ? "Locked · " : ""}
                 {new Date(m.kickoff).toLocaleString("en-GB", {
                   weekday: "short", day: "numeric", month: "short",
                   hour: "2-digit", minute: "2-digit" })}
@@ -208,7 +212,7 @@ export default function PickBoard({
                       className="opt"
                       data-on={on}
                       aria-pressed={on}
-                      disabled={locked || price === undefined}
+                      disabled={started(m) || price === undefined}
                       onClick={() => save(m.id, slot, mult)}
                     >
                       <div className="lbl">{label}</div>
@@ -222,7 +226,7 @@ export default function PickBoard({
               )}
             </div>
 
-            {pk && !locked && (
+            {pk && !started(m) && (
               <button className="multbtn" onClick={() => cycle(m)}>
                 {mult === 1 ? "Add multiplier" : `Staked ${LABEL[mult]} — tap to change`}
               </button>
@@ -243,9 +247,10 @@ export default function PickBoard({
       </div>
 
       <p className="note">
-        Picks save the moment you tap — there&apos;s no submit button. You&apos;re locked in
-        at the price shown on your selection, and it won&apos;t move afterwards even if
-        the market does. Anything left blank scores −$100.
+        Picks save the moment you tap — there&apos;s no submit button. Each match
+        closes at its own kick-off, so a Monday fixture stays open all weekend.
+        You&apos;re locked in at the price shown on your selection. Anything left
+        blank when its match starts scores −$100.
       </p>
     </main>
   );
