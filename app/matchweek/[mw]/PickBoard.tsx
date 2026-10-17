@@ -21,9 +21,10 @@ const profit = (a: number, m: number) => Math.round(100 * m * (decimal(a) - 1));
 const LABEL: Record<number, string> = { 1: "", 2: "2×", 3: "3×", 4: "4×" };
 
 export default function PickBoard({
-  matchweek, matches, initialPicks, allowance, limits,
+  matchweek, matchweeks, matches, initialPicks, allowance, limits,
 }: {
   matchweek: { number: number; quarter: number; locksAt: string; compressed: boolean };
+  matchweeks?: number[];
   matches: Match[];
   initialPicks: Record<string, Pick>;
   allowance: Allowance;
@@ -131,6 +132,15 @@ export default function PickBoard({
       </header>
 
       <Nav active="slip" />
+
+      {matchweeks && matchweeks.length > 1 && (
+        <div className="mwpick">
+          {matchweeks.map((n) => (
+            <a key={n} className="mwbtn" data-on={n === matchweek.number}
+               href={`/matchweek/${n}`}>{n}</a>
+          ))}
+        </div>
+      )}
 
       {openCount > 0 && (
         <div className="ticker">

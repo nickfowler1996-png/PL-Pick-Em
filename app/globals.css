@@ -219,3 +219,6 @@ a.tab { display:block; text-align:center; text-decoration:none; }
 .ko[data-locked="true"] { color:var(--gold); }
 .grid td[data-status="hidden"] { opacity:.35; }
 .grid td[data-status="hidden"] .pk { color:var(--dim); letter-spacing:.2em; }
+
+/* Matchweek links on the slip */
+a.mwbtn { display:inline-block; text-decoration:none; text-align:center; }

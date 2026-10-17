@@ -51,8 +51,26 @@ export default async function MatchweekPage({ params }: { params: { mw: string }
     shape(outsideThisWeek.filter((p: any) => p.matches.matchweeks.season === mw.season))
   );
 
+  // Which rounds are worth offering: anything still pickable, plus the one
+  // just gone so a player can review what they submitted.
+  const { data: nearby } = await db
+    .from("matchweeks")
+    .select("mw_number, last_kickoff")
+    .order("mw_number");
+
+  const nowMs = Date.now();
+  const selectable = (nearby ?? [])
+    .filter((x) =>
+      new Date(x.last_kickoff).getTime() > nowMs ||
+      x.mw_number === mwNumber ||
+      x.mw_number === mwNumber - 1
+    )
+    .map((x) => x.mw_number)
+    .slice(0, 6);
+
   return (
     <PickBoard
+      matchweeks={selectable}
       matchweek={{
         number: mw.mw_number,
         quarter: mw.quarter,
